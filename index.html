@@ -1,0 +1,2456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foot Finder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+:root {
+    --primary: #00e676;
+    --error: #ff5252;
+    --bg-dark: #0a0b0d;
+    --card-bg: #111315;
+    --border: #2d3136;
+    --text-main: #ffffff;
+    --text-dim: #a0a0a0;
+    --coin: #f9ca24;
+    --streak: #ff6b35;
+    --survival: #ff3860;
+    --escalade: #a855f7;
+    --parcours: #00bcd4;
+    --inverse: #f59e0b;
+    --gda: #eb4d4b; --def: #3498db; --mil: #f1c40f; --att: #6edc58;
+}
+* { box-sizing: border-box; }
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    margin: 0;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; overflow-x: hidden;
+}
+.screen { display: none; width: 100%; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 30px 20px; }
+.screen.active { display: flex; }
+
+/* AUTH */
+.auth-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 28px; padding: 48px 40px; width: 100%; max-width: 420px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.6); animation: fadeInUp 0.4s ease;
+}
+.auth-logo { font-size: 4rem; font-weight: 800; text-align: center; margin-bottom: 6px;
+    background: linear-gradient(to bottom, #fff, var(--primary));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -3px; filter: drop-shadow(0 0 12px rgba(0,230,118,0.3));
+}
+.auth-subtitle { text-align: center; color: var(--text-dim); font-size: 0.9rem; margin-bottom: 32px; }
+.auth-tabs { display: flex; background: #1a1c1e; border-radius: 12px; padding: 4px; margin-bottom: 28px; gap: 4px; }
+.auth-tab { flex: 1; padding: 10px; border-radius: 9px; border: none; background: transparent; color: var(--text-dim); font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+.auth-tab.active { background: var(--primary); color: #000; }
+.form-group { margin-bottom: 18px; }
+.form-label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-input { width: 100%; padding: 14px 18px; border-radius: 12px; border: 2px solid var(--border); background: #1a1c1e; color: white; font-size: 1rem; font-family: 'Poppins', sans-serif; outline: none; transition: border-color 0.2s; }
+.form-input:focus { border-color: var(--primary); }
+.btn-auth { width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--primary); color: #000; font-size: 1.1rem; font-weight: 800; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.2s; margin-top: 6px; }
+.btn-auth:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,230,118,0.3); }
+.btn-auth:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.auth-error { background: rgba(255,82,82,0.12); border: 1px solid var(--error); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.85rem; color: var(--error); font-weight: 600; display: none; }
+.auth-success { background: rgba(0,230,118,0.1); border: 1px solid var(--primary); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.85rem; color: var(--primary); font-weight: 600; display: none; }
+.auth-divider { text-align: center; color: var(--text-dim); font-size: 0.78rem; margin: 16px 0; }
+.pwd-toggle { position: relative; }
+.pwd-toggle .toggle-btn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1rem; padding: 4px; }
+
+/* HUDs */
+#coin-hud { position: fixed; top: 18px; right: 24px; z-index: 900; background: #1a1c1e; border: 2px solid var(--coin); border-radius: 50px; padding: 8px 18px; display: none; align-items: center; gap: 8px; font-weight: 800; font-size: 1rem; color: var(--coin); }
+#coin-hud.bounce { animation: coinBounce 0.4s cubic-bezier(0.175,0.885,0.32,1.275); }
+#streak-hud { position: fixed; top: 18px; left: 24px; z-index: 900; background: #1a1c1e; border: 2px solid var(--streak); border-radius: 50px; padding: 8px 18px; display: none; align-items: center; gap: 8px; font-weight: 800; font-size: 1rem; color: var(--streak); }
+#streak-hud.pulse { animation: streakGlow 0.5s ease; }
+
+/* TOAST */
+#toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1c1e; border: 2px solid var(--coin); border-radius: 50px; padding: 12px 28px; font-weight: 800; font-size: 0.95rem; color: var(--coin); z-index: 9999; opacity: 0; pointer-events: none; transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275), opacity 0.3s; white-space: nowrap; }
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* AUTOCOMPLETE */
+.autocomplete-wrap { position: relative; }
+.autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: #1a1c1e; border: 2px solid var(--primary); border-top: none; border-radius: 0 0 12px 12px; z-index: 500; max-height: 220px; overflow-y: auto; }
+.autocomplete-item { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 600; transition: background 0.15s; }
+.autocomplete-item:hover, .autocomplete-item.selected { background: rgba(0,230,118,0.12); color: var(--primary); }
+.autocomplete-item img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.autocomplete-item .sub { font-size: 0.72rem; color: var(--text-dim); font-weight: 400; }
+/* For inverse mode club autocomplete */
+.autocomplete-item-club { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 600; transition: background 0.15s; }
+.autocomplete-item-club:hover, .autocomplete-item-club.selected { background: rgba(245,158,11,0.12); color: var(--inverse); }
+.autocomplete-item-club img { width: 38px; height: 38px; object-fit: contain; background: white; border-radius: 8px; padding: 3px; }
+
+/* MENU */
+#menu-screen { gap: 14px; }
+.title-brand { font-size: 5rem; font-weight: 800; margin-bottom: 5px; letter-spacing: -3px; background: linear-gradient(to bottom, #fff, var(--primary)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(0,230,118,0.3)); }
+.menu-user-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 6px; }
+.user-chip { display: flex; align-items: center; gap: 8px; background: #1a1c1e; border: 1.5px solid var(--primary); border-radius: 50px; padding: 8px 18px; font-weight: 700; font-size: 0.9rem; color: var(--primary); }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; }
+.menu-stats { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center; }
+.stat-chip { background: #1a1c1e; border-radius: 50px; padding: 7px 16px; font-weight: 800; font-size: 0.88rem; border: 1.5px solid var(--border); }
+.stat-chip.coins { border-color: var(--coin); color: var(--coin); }
+.stat-chip.streak { border-color: var(--streak); color: var(--streak); }
+
+.btn-main { width: 300px; padding: 18px; border-radius: 14px; border: 1.5px solid var(--border); background: #1a1c1e; color: white; font-size: 1.05rem; font-weight: 700; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.3s cubic-bezier(0.175,0.885,0.32,1.275); display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-main:hover { border-color: var(--primary); transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+.btn-play { background: var(--primary); color: #000; border: none; font-weight: 800; }
+.btn-daily { background: linear-gradient(135deg, #f9ca24, #f0932b); color: #000; border: none; font-weight: 800; }
+.btn-daily.done { opacity: 0.5; cursor: not-allowed; }
+.btn-survival { background: linear-gradient(135deg, #ff3860, #c0392b); color: #fff; border: none; font-weight: 800; }
+.btn-escalade { background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; border: none; font-weight: 800; }
+.btn-parcours { background: linear-gradient(135deg, #00bcd4, #0097a7); color: #fff; border: none; font-weight: 800; }
+.btn-inverse { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; border: none; font-weight: 800; }
+.btn-historique { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; font-weight: 800; }
+.btn-lb { border-color: #9b59b6; color: #c39bd3; }
+.btn-lb:hover { border-color: #9b59b6; box-shadow: 0 10px 20px rgba(155,89,182,0.2); }
+.btn-logout { border-color: var(--error); color: #ff8a80; font-size: 0.85rem; padding: 10px; width: auto; min-width: 140px; }
+.btn-logout:hover { border-color: var(--error); }
+.btn-rules { border-color: #60a5fa; color: #93c5fd; }
+.btn-rules:hover { border-color: #60a5fa; box-shadow: 0 10px 20px rgba(96,165,250,0.2); }
+
+/* JEU CLASSIQUE */
+#game-screen { justify-content: flex-start; padding-top: 30px; }
+.game-inner { width: 100%; max-width: 900px; animation: fadeInUp 0.4s ease; }
+.game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; gap: 10px; flex-wrap: wrap; }
+.game-pills { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pill { background: #1a1c1e; border-radius: 50px; padding: 6px 14px; font-size: 0.78rem; font-weight: 700; border: 1px solid var(--border); }
+.pill.daily { border-color: #f9ca24; color: #f9ca24; }
+.pill.streak { border-color: var(--streak); color: var(--streak); }
+.pill.survival { border-color: var(--survival); color: var(--survival); }
+.pill.escalade-pill { border-color: var(--escalade); color: var(--escalade); }
+.player-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 30px; padding: 48px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+.photo-wrap { width: 220px; height: 220px; margin: 0 auto 28px; border-radius: 50%; border: 4px solid var(--border); overflow: hidden; background: #1e2124; }
+.player-photo { width: 100%; height: 100%; object-fit: cover; filter: blur(55px) brightness(0.8); transform: scale(1.1); transition: filter 0.05s ease; }
+#revealed-name { font-size: 2rem; font-weight: 800; margin-bottom: 8px; opacity: 0; transition: opacity 0.5s; min-height: 2.5rem; color: var(--primary); }
+#remaining-count { font-size: 0.88rem; color: var(--text-dim); margin-bottom: 18px; font-weight: 600; min-height: 1.4rem; }
+.clubs-grid { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin-bottom: 28px; }
+.club-badge { background: white; padding: 10px; border-radius: 12px; width: 68px; height: 68px; display: flex; align-items: center; justify-content: center; animation: pop 0.4s cubic-bezier(0.175,0.885,0.32,1.275); }
+.club-badge img { max-width: 100%; max-height: 100%; }
+#hint-area { margin-bottom: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.hint-reveal { background: #1a1c1e; border: 2px solid var(--primary); border-radius: 12px; padding: 10px 22px; font-weight: 700; font-size: 0.95rem; animation: fadeInUp 0.3s ease; display: flex; align-items: center; gap: 8px; }
+.hint-reveal img { width: 26px; height: 18px; border-radius: 3px; }
+.pos-pill { display: inline-block; padding: 5px 16px; border-radius: 7px; font-weight: 900; font-size: 0.95rem; color: #000; }
+#hint-zone { display: flex; gap: 12px; justify-content: center; margin-bottom: 22px; flex-wrap: wrap; }
+.hint-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; background: #1a1c1e; border: 2px solid var(--border); border-radius: 14px; padding: 13px 20px; cursor: pointer; transition: all 0.2s; color: white; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.82rem; min-width: 125px; }
+.hint-btn:hover:not(:disabled) { border-color: var(--coin); transform: translateY(-2px); }
+.hint-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+.hint-btn.used { border-color: var(--primary); background: rgba(0,230,118,0.07); }
+.hint-btn .hicon { font-size: 1.4rem; }
+.hint-btn .hcost { color: var(--coin); font-size: 0.75rem; font-weight: 800; }
+.hint-btn.used .hcost { color: var(--primary); }
+.input-group { display: flex; gap: 10px; justify-content: center; }
+input[type="text"] { background: #1e2124; border: 2px solid var(--border); padding: 15px 22px; border-radius: 14px; color: white; width: 340px; outline: none; font-size: 1rem; transition: 0.2s; font-family: 'Poppins', sans-serif; }
+input[type="text"]:focus { border-color: var(--primary); }
+.shake { animation: shake 0.4s; border-color: var(--error) !important; }
+.daily-banner { display: inline-flex; align-items: center; gap: 7px; background: rgba(249,202,36,0.1); border: 1.5px solid #f9ca24; border-radius: 10px; padding: 7px 16px; font-size: 0.82rem; font-weight: 700; color: #f9ca24; margin-bottom: 14px; animation: fadeInUp 0.3s; }
+
+/* LOCKED NOTICE */
+.locked-notice { background: rgba(255,82,82,0.08); border: 1.5px solid var(--error); border-radius: 14px; padding: 18px 24px; text-align: center; margin: 14px 0; font-weight: 700; color: var(--error); font-size: 0.9rem; }
+
+/* ===== MODE SURVIE ===== */
+#survival-screen { justify-content: flex-start; padding-top: 30px; }
+.survival-inner { width: 100%; max-width: 900px; animation: fadeInUp 0.4s ease; }
+.survival-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+.lives-display { display: flex; gap: 6px; font-size: 1.5rem; }
+.timer-bar-wrap { width: 100%; background: #1a1c1e; border-radius: 50px; height: 12px; margin-bottom: 20px; overflow: hidden; border: 1px solid var(--border); }
+.timer-bar { height: 100%; background: linear-gradient(90deg, var(--primary), #00bcd4); border-radius: 50px; transition: width 0.1s linear; }
+.timer-bar.warning { background: linear-gradient(90deg, #f9ca24, #ff6b35); }
+.timer-bar.danger { background: linear-gradient(90deg, var(--survival), #c0392b); }
+.survival-score-display { font-size: 1.1rem; font-weight: 800; color: var(--survival); }
+#survival-result { display: none; text-align: center; padding: 40px; }
+.result-title { font-size: 3rem; font-weight: 800; margin-bottom: 10px; }
+.result-score { font-size: 1.5rem; color: var(--coin); font-weight: 800; margin-bottom: 6px; }
+.result-best { font-size: 1rem; color: var(--text-dim); margin-bottom: 30px; }
+
+/* ===== MODE ESCALADE ===== */
+#escalade-screen { justify-content: flex-start; padding-top: 30px; }
+.escalade-inner { width: 100%; max-width: 900px; animation: fadeInUp 0.4s ease; }
+.escalade-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+.level-display { display: flex; align-items: center; gap: 8px; }
+.level-badge { background: linear-gradient(135deg, var(--escalade), #7c3aed); color: white; border-radius: 12px; padding: 8px 18px; font-weight: 800; font-size: 1rem; }
+.level-progress { display: flex; gap: 6px; }
+.lvl-dot { width: 12px; height: 12px; border-radius: 50%; background: #1a1c1e; border: 2px solid var(--border); transition: all 0.3s; }
+.lvl-dot.done { background: var(--escalade); border-color: var(--escalade); }
+.lvl-dot.current { background: transparent; border-color: var(--escalade); box-shadow: 0 0 8px var(--escalade); }
+.escalade-banner { display: inline-flex; align-items: center; gap: 7px; background: rgba(168,85,247,0.1); border: 1.5px solid var(--escalade); border-radius: 10px; padding: 7px 16px; font-size: 0.82rem; font-weight: 700; color: var(--escalade); margin-bottom: 14px; animation: fadeInUp 0.3s; }
+/* Escalade hints display */
+.esc-hints-area { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+.esc-hint-chip { background: rgba(168,85,247,0.1); border: 1.5px solid var(--escalade); border-radius: 10px; padding: 6px 14px; font-size: 0.82rem; font-weight: 700; color: var(--escalade); }
+
+/* ===== MODE PARCOURS ===== */
+#parcours-screen { justify-content: flex-start; padding-top: 30px; }
+.parcours-inner { width: 100%; max-width: 960px; animation: fadeInUp 0.4s ease; }
+.parcours-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 10px; flex-wrap: wrap; }
+.parcours-score-chip { background: rgba(0,188,212,0.1); border: 2px solid var(--parcours); border-radius: 50px; padding: 8px 20px; font-weight: 800; color: var(--parcours); }
+.parcours-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 28px; padding: 36px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+.parcours-clubs-display { display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+.parcours-club-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.parcours-club-logo { background: white; padding: 10px; border-radius: 12px; width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; }
+.parcours-club-logo img { max-width: 100%; max-height: 100%; }
+.parcours-club-name { font-size: 0.72rem; font-weight: 700; color: var(--text-dim); text-align: center; max-width: 80px; }
+.parcours-arrow { font-size: 1.5rem; color: var(--border); }
+.parcours-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .parcours-choices { grid-template-columns: 1fr; } }
+.choice-card { background: #1a1c1e; border: 2px solid var(--border); border-radius: 18px; padding: 20px; cursor: pointer; transition: all 0.25s; display: flex; align-items: center; gap: 16px; }
+.choice-card:hover { border-color: var(--parcours); transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,188,212,0.15); }
+.choice-card.correct { border-color: var(--primary); background: rgba(0,230,118,0.08); pointer-events: none; }
+.choice-card.wrong { border-color: var(--error); background: rgba(255,82,82,0.08); pointer-events: none; opacity: 0.6; }
+.choice-card.disabled { pointer-events: none; }
+.choice-photo { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); flex-shrink: 0; }
+.choice-photo.blur { filter: blur(22px); }
+.choice-info { flex: 1; text-align: left; }
+.choice-name { font-weight: 800; font-size: 1rem; color: white; }
+.choice-nation { font-size: 0.78rem; color: var(--text-dim); }
+.choice-result-icon { font-size: 1.5rem; margin-left: auto; }
+.parcours-question-num { font-size: 0.82rem; color: var(--text-dim); font-weight: 700; text-align: center; margin-bottom: 14px; }
+.parcours-result { display: none; text-align: center; padding: 30px 0; }
+.parcours-result-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; }
+.parcours-result-score { font-size: 1.3rem; color: var(--coin); font-weight: 800; margin-bottom: 24px; }
+.progress-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 28px; }
+.progress-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--border); transition: all 0.3s; }
+.progress-dot.ok { background: var(--primary); }
+.progress-dot.ko { background: var(--error); }
+.progress-dot.current-dot { background: var(--parcours); box-shadow: 0 0 8px var(--parcours); }
+
+/* ===== MODE HISTORIQUE ===== */
+#historique-screen { justify-content: flex-start; padding-top: 30px; }
+.historique-inner { width: 100%; max-width: 900px; animation: fadeInUp 0.4s ease; }
+.historique-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+.historique-player-reveal { text-align: center; margin-bottom: 24px; }
+.historique-player-photo { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--border); margin: 0 auto 12px; display: block; }
+.historique-player-name { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin-bottom: 4px; }
+.historique-player-meta { font-size: 0.85rem; color: var(--text-dim); font-weight: 600; }
+.club-slots { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin: 24px 0; }
+.club-slot { background: #1a1c1e; border: 2px dashed var(--border); border-radius: 14px; width: 80px; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1.6rem; transition: all 0.3s; position: relative; overflow: hidden; }
+.club-slot.found { border: 2px solid var(--primary); background: rgba(0,230,118,0.06); animation: pop 0.4s cubic-bezier(0.175,0.885,0.32,1.275); }
+.club-slot.found img { max-width: 100%; max-height: 100%; padding: 6px; background: white; border-radius: 10px; }
+.club-slot .slot-num { color: var(--text-dim); font-size: 0.72rem; font-weight: 800; position: absolute; bottom: 4px; }
+.histo-input-area { margin: 14px 0; }
+.histo-input-wrap { position: relative; display: flex; gap: 10px; justify-content: center; }
+.histo-input-wrap input { width: 340px; border-color: var(--inverse); }
+.histo-input-wrap input:focus { border-color: var(--inverse); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+.histo-score { font-size: 0.88rem; color: var(--text-dim); text-align: center; margin-bottom: 8px; font-weight: 700; }
+.histo-reveal-all { background: rgba(255,82,82,0.08); border: 1.5px solid var(--error); color: var(--error); border-radius: 10px; padding: 7px 18px; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: 'Poppins', sans-serif; margin-top: 12px; transition: all 0.2s; }
+.histo-reveal-all:hover { background: rgba(255,82,82,0.18); }
+
+/* ===== MODE INVERSE ===== */
+#inverse-screen { justify-content: flex-start; padding-top: 30px; }
+.inverse-inner { width: 100%; max-width: 900px; animation: fadeInUp 0.4s ease; }
+.inverse-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+.inverse-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 30px; padding: 40px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+.inverse-player-display { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 28px; flex-wrap: wrap; }
+.inverse-photo { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid var(--inverse); }
+.inverse-player-info { text-align: left; }
+.inverse-player-name { font-size: 1.8rem; font-weight: 800; color: var(--inverse); }
+.inverse-player-meta { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; }
+.inverse-progress { font-size: 0.9rem; color: var(--text-dim); font-weight: 700; margin-bottom: 18px; }
+.inverse-found-clubs { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 20px; }
+.inverse-club-found { background: white; padding: 8px; border-radius: 10px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; animation: pop 0.3s ease; border: 2px solid var(--primary); }
+.inverse-club-found img { max-width: 100%; max-height: 100%; }
+.inverse-club-wrong { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 12px; min-height: 20px; }
+.wrong-chip { background: rgba(255,82,82,0.1); border: 1px solid var(--error); border-radius: 50px; padding: 4px 12px; font-size: 0.78rem; color: var(--error); font-weight: 700; }
+.inverse-input-row { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.inverse-input-row input { border-color: var(--inverse); width: 340px; }
+.inverse-input-row input:focus { border-color: var(--inverse); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+.inverse-banner { display: inline-flex; align-items: center; gap: 7px; background: rgba(245,158,11,0.1); border: 1.5px solid var(--inverse); border-radius: 10px; padding: 7px 16px; font-size: 0.82rem; font-weight: 700; color: var(--inverse); margin-bottom: 14px; animation: fadeInUp 0.3s; }
+.inverse-result-inline { font-size: 0.9rem; color: var(--text-dim); font-weight: 700; margin-top: 10px; min-height: 1.4rem; }
+
+/* LEADERBOARD */
+#lb-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); backdrop-filter: blur(15px); z-index: 1000; align-items: center; justify-content: center; }
+#lb-modal.open { display: flex; }
+.lb-box { background: #0f1113; border-radius: 28px; border: 1px solid var(--border); padding: 38px; max-width: 580px; width: 92%; max-height: 88vh; overflow-y: auto; position: relative; animation: fadeInUp 0.35s ease; }
+.lb-title { font-size: 1.9rem; font-weight: 800; text-align: center; margin-bottom: 4px; background: linear-gradient(90deg, #9b59b6, #00e676); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.lb-sub { text-align: center; color: var(--text-dim); font-size: 0.82rem; margin-bottom: 22px; }
+.lb-tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+.lb-tab { padding: 7px 18px; border-radius: 50px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.82rem; transition: all 0.2s; }
+.lb-tab.active { background: #9b59b6; border-color: #9b59b6; color: white; }
+.lb-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-radius: 12px; margin-bottom: 7px; background: #1a1c1e; animation: fadeInUp 0.25s ease; }
+.lb-row.me { border: 2px solid var(--primary); background: rgba(0,230,118,0.05); }
+.lb-rank { font-size: 1.2rem; font-weight: 900; width: 34px; text-align: center; }
+.lb-rank.gold { color: #f9ca24; } .lb-rank.silver { color: #bdc3c7; } .lb-rank.bronze { color: #cd6133; }
+.lb-name { flex: 1; font-weight: 700; font-size: 0.95rem; }
+.lb-val { font-weight: 800; font-size: 1rem; }
+.lb-val.c { color: var(--coin); } .lb-val.s { color: var(--streak); } .lb-val.w { color: var(--primary); }
+.lb-empty { text-align: center; color: var(--text-dim); padding: 28px; font-size: 0.88rem; }
+.lb-mine { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: rgba(0,230,118,0.07); border: 1.5px solid var(--primary); text-align: center; font-weight: 700; font-size: 0.9rem; display: none; }
+.lb-close { position: absolute; top: 18px; right: 18px; background: #1a1c1e; border: 1px solid var(--border); color: white; border-radius: 8px; padding: 6px 13px; cursor: pointer; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.85rem; }
+
+/* RÈGLES DU JEU */
+#rules-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); backdrop-filter: blur(15px); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
+#rules-modal.open { display: flex; }
+.rules-box { background: #0f1113; border-radius: 28px; border: 1px solid var(--border); padding: 38px; max-width: 640px; width: 92%; max-height: 90vh; overflow-y: auto; position: relative; animation: fadeInUp 0.35s ease; }
+.rules-title { font-size: 1.9rem; font-weight: 800; text-align: center; margin-bottom: 4px; background: linear-gradient(90deg, #60a5fa, #00e676); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.rules-sub { text-align: center; color: var(--text-dim); font-size: 0.82rem; margin-bottom: 28px; }
+.rules-mode { background: #1a1c1e; border-radius: 18px; padding: 20px 24px; margin-bottom: 16px; border-left: 4px solid var(--primary); }
+.rules-mode-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 8px; }
+.rules-mode-body { font-size: 0.85rem; color: var(--text-dim); line-height: 1.7; }
+.rules-mode-body li { margin-bottom: 4px; list-style: none; padding-left: 0; }
+.rules-mode-body li::before { content: "→ "; color: var(--primary); font-weight: 700; }
+.rules-close { position: absolute; top: 18px; right: 18px; background: #1a1c1e; border: 1px solid var(--border); color: white; border-radius: 8px; padding: 6px 13px; cursor: pointer; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.85rem; }
+
+/* DÉFI DU JOUR modal */
+#daily-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97); backdrop-filter: blur(15px); z-index: 1000; align-items: center; justify-content: center; }
+#daily-modal.open { display: flex; }
+.daily-modal-box { background: #0f1113; border-radius: 28px; border: 1px solid #f9ca24; padding: 38px; max-width: 440px; width: 92%; position: relative; animation: fadeInUp 0.35s ease; text-align: center; }
+.daily-modal-title { font-size: 1.6rem; font-weight: 800; color: #f9ca24; margin-bottom: 8px; }
+.daily-modal-sub { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 28px; }
+.daily-mode-btn { display: flex; align-items: center; gap: 14px; background: #1a1c1e; border: 2px solid var(--border); border-radius: 16px; padding: 16px 20px; cursor: pointer; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.95rem; color: white; width: 100%; margin-bottom: 12px; transition: all 0.25s; text-align: left; }
+.daily-mode-btn:hover { transform: translateY(-3px); }
+.daily-mode-btn .dmicon { font-size: 1.6rem; }
+.daily-mode-btn .dminfo { flex: 1; }
+.daily-mode-btn .dmname { font-weight: 800; font-size: 1rem; }
+.daily-mode-btn .dmdesc { font-size: 0.75rem; color: var(--text-dim); font-weight: 400; margin-top: 2px; }
+.daily-mode-btn.done-mode { opacity: 0.4; pointer-events: none; }
+.daily-close { position: absolute; top: 18px; right: 18px; background: #1a1c1e; border: 1px solid var(--border); color: white; border-radius: 8px; padding: 6px 13px; cursor: pointer; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.85rem; }
+
+/* RECHERCHE */
+#search-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(15px); z-index: 1000; }
+.search-container { max-width: 1300px; margin: 30px auto; background: #0f1113; border-radius: 25px; border: 1px solid var(--border); padding: 30px; height: 85vh; display: flex; flex-direction: column; }
+.tbl-header { display: grid; grid-template-columns: 110px 2fr 120px 220px 3fr; padding: 18px; background: #1a1c1e; border-radius: 14px 14px 0 0; font-weight: 800; color: var(--text-dim); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; }
+.tbl-row { display: grid; grid-template-columns: 110px 2fr 120px 220px 3fr; align-items: center; padding: 16px 22px; border-bottom: 1px solid #1a1c1e; transition: background 0.2s; }
+.tbl-row:hover { background: #16181a; }
+.row-name { color: var(--primary); font-weight: 700; font-size: 1.3rem; }
+.mini-icon { width: 28px; height: 20px; border-radius: 3px; margin-right: 10px; }
+.mini-club { width: 42px; height: 42px; object-fit: contain; margin: 0 6px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3)); }
+.pos-badge { padding: 7px 13px; border-radius: 7px; font-size: 0.82rem; font-weight: 900; color: #000; text-align: center; width: 58px; }
+
+/* COIN FLOAT */
+.coin-float { position: fixed; font-weight: 900; font-size: 1.1rem; color: var(--coin); pointer-events: none; z-index: 9999; animation: coinFloat 0.9s ease forwards; }
+
+/* ANIMATIONS */
+@keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-9px); } 75% { transform: translateX(9px); } }
+@keyframes coinBounce { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 70% { transform: scale(0.95); } 100% { transform: scale(1); } }
+@keyframes coinFloat { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-65px); opacity: 0; } }
+@keyframes streakGlow { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 22px rgba(255,107,53,0.55); } }
+#results-body::-webkit-scrollbar { width: 7px; }
+#results-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+.hidden { display: none !important; }
+.menu-divider { width: 300px; border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+.mode-section-label { font-size: 0.72rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin: 6px 0 2px; }
+    </style>
+</head>
+<body>
+
+<div id="streak-hud">🔥 <span id="hud-streak">0</span></div>
+<div id="coin-hud">🪙 <span id="hud-coins">0</span></div>
+<div id="toast"></div>
+
+<!-- AUTH -->
+<div id="auth-screen" class="screen">
+    <div class="auth-card">
+        <div class="auth-logo">FootFinder</div>
+        <div class="auth-subtitle">Connecte-toi pour sauvegarder tes avancées</div>
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Se connecter</button>
+            <button class="auth-tab" onclick="switchAuthTab('signup')">Créer un compte</button>
+        </div>
+        <div id="auth-error" class="auth-error"></div>
+        <div id="auth-success" class="auth-success"></div>
+        <div class="form-group">
+            <label class="form-label" id="pseudo-label">Nom d'utilisateur</label>
+            <input type="text" class="form-input" id="inp-pseudo" placeholder="Ton pseudo..." maxlength="18" onkeypress="if(event.key==='Enter')document.getElementById('inp-pwd').focus()">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Mot de passe</label>
+            <div class="pwd-toggle">
+                <input type="password" class="form-input" id="inp-pwd" placeholder="••••••••" style="padding-right:46px" onkeypress="if(event.key==='Enter')submitAuth()">
+                <button class="toggle-btn" onclick="togglePwd()" tabindex="-1">👁️</button>
+            </div>
+        </div>
+        <button class="btn-auth" id="btn-auth-submit" onclick="submitAuth()">Se connecter</button>
+        <div class="auth-divider" id="auth-switch-text">
+            Pas encore de compte ? <a href="#" onclick="switchAuthTab('signup');return false;" style="color:var(--primary);font-weight:700;text-decoration:none;">Créer un compte</a>
+        </div>
+    </div>
+</div>
+
+<!-- MENU -->
+<div id="menu-screen" class="screen">
+    <div class="title-brand">FootFinder</div>
+    <div class="menu-user-bar">
+        <div class="user-chip">
+            <div class="user-avatar" id="user-avatar">?</div>
+            <span id="user-name-display">...</span>
+        </div>
+        <button class="btn-main btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+    <div class="menu-stats">
+        <div class="stat-chip coins">🪙 <span id="menu-coins">0</span> coins</div>
+        <div class="stat-chip streak">🔥 Meilleure série : <span id="menu-best-streak">0</span></div>
+        <div class="stat-chip" style="color:var(--primary);border-color:var(--primary)">✅ <span id="menu-wins">0</span> victoires</div>
+    </div>
+    <span class="mode-section-label">⭐ Quotidien</span>
+    <button class="btn-main btn-daily" id="btn-daily" onclick="openDailyModal()">🌟 DÉFI DU JOUR</button>
+    <span class="mode-section-label">🎮 Modes de jeu</span>
+    <button class="btn-main btn-play" onclick="startGame(false)">▶ MODE CLASSIQUE</button>
+    <button class="btn-main btn-inverse" onclick="startInverse(false)">🔄 MODE INVERSE</button>
+    <button class="btn-main btn-historique" onclick="startHistorique(false)">📋 HISTORIQUE DES CLUBS</button>
+    <button class="btn-main btn-survival" onclick="startSurvival()">❤️ MODE SURVIE</button>
+    <button class="btn-main btn-escalade" onclick="startEscalade()">📈 MODE ESCALADE</button>
+    <button class="btn-main btn-parcours" onclick="startParcours()">🔀 QUI A CE PARCOURS ?</button>
+    <span class="mode-section-label">📊 Statistiques</span>
+    <button class="btn-main btn-lb" onclick="openLeaderboard()">🏆 CLASSEMENT</button>
+    <button class="btn-main btn-rules" onclick="openRules()">📖 RÈGLES DU JEU</button>
+    <button class="btn-main" onclick="openSearch()">🔍 BASE DE DONNÉES</button>
+</div>
+
+<!-- JEU CLASSIQUE -->
+<div id="game-screen" class="screen">
+    <div class="game-inner">
+        <div class="game-header">
+            <button class="btn-main" style="width:auto;padding:8px 18px;" onclick="goHome()">← MENU</button>
+            <div class="game-pills">
+                <div class="pill" id="mode-pill">Mode classique</div>
+                <div class="pill streak">🔥 <span id="game-streak">0</span></div>
+                <div style="font-size:0.74rem;color:var(--text-dim);text-align:right;line-height:1.8;">
+                    ✅ Bonne réponse = <span style="color:var(--coin);font-weight:800;">+1 🪙</span><br>
+                    🌍 Nation / 🎯 Poste = <span style="color:var(--coin);font-weight:800;">5 🪙</span> chacun
+                </div>
+            </div>
+        </div>
+        <div class="player-card">
+            <div id="daily-banner-zone"></div>
+            <div class="photo-wrap"><img id="p-photo" class="player-photo" src=""></div>
+            <div id="revealed-name"></div>
+            <div id="remaining-count"></div>
+            <div id="p-clubs" class="clubs-grid"></div>
+            <div id="hint-area"></div>
+            <div id="hint-zone">
+                <button class="hint-btn" id="btn-nation" onclick="buyHint('nation',this)">
+                    <span class="hicon">🌍</span><span>Nationalité</span><span class="hcost">🪙 5 coins</span>
+                </button>
+                <button class="hint-btn" id="btn-pos" onclick="buyHint('pos',this)">
+                    <span class="hicon">🎯</span><span>Poste</span><span class="hcost">🪙 5 coins</span>
+                </button>
+            </div>
+            <div id="input-zone">
+                <p style="font-size:0.78rem;color:var(--text-dim);font-weight:700;margin-bottom:8px;text-align:center;">💡 Suggestion de joueurs</p>
+                <div class="autocomplete-wrap input-group">
+                    <div style="position:relative;flex:1;max-width:340px;">
+                        <input type="text" id="guessInput" placeholder="Nom du joueur..." onkeyup="handleAC('guessInput','ac-classic',true)" onkeypress="handleKeyPress(event)">
+                        <div id="ac-classic" class="autocomplete-list" style="display:none;"></div>
+                    </div>
+                    <button class="btn-main btn-play" style="width:auto;padding:0 22px;" onclick="checkAnswer()">Valider</button>
+                </div>
+            </div>
+            <button id="restart-btn" class="btn-main btn-play hidden" style="margin:18px auto 0;" onclick="nextQuestion()">Suivant ▶</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODE SURVIE -->
+<div id="survival-screen" class="screen">
+    <div class="survival-inner">
+        <div class="survival-header">
+            <button class="btn-main" style="width:auto;padding:8px 18px;" onclick="goHome()">← MENU</button>
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <div class="pill survival" style="font-size:0.9rem;">❤️ SURVIE</div>
+                <div class="lives-display" id="lives-display"></div>
+                <div class="survival-score-display">Score : <span id="survival-score">0</span></div>
+            </div>
+        </div>
+        <div class="timer-bar-wrap">
+            <div class="timer-bar" id="timer-bar" style="width:100%"></div>
+        </div>
+        <div id="survival-game-zone">
+            <div class="player-card">
+                <div class="photo-wrap"><img id="sv-photo" class="player-photo" src=""></div>
+                <div id="sv-revealed-name" style="font-size:2rem;font-weight:800;margin-bottom:8px;opacity:0;transition:opacity 0.5s;min-height:2.5rem;color:var(--primary);"></div>
+                <div id="sv-remaining" style="font-size:0.88rem;color:var(--text-dim);margin-bottom:18px;font-weight:600;min-height:1.4rem;"></div>
+                <div id="sv-clubs" class="clubs-grid"></div>
+                <p style="font-size:0.78rem;color:var(--text-dim);font-weight:700;margin:10px 0 4px;text-align:center;">💡 Suggestion</p>
+                <div style="position:relative;display:flex;gap:10px;justify-content:center;">
+                    <div style="position:relative;">
+                        <input type="text" id="sv-input" placeholder="Nom du joueur..." onkeyup="handleAC('sv-input','ac-survival',true)" onkeypress="if(event.key==='Enter')svCheckAnswer()">
+                        <div id="ac-survival" class="autocomplete-list" style="display:none;"></div>
+                    </div>
+                    <button class="btn-main btn-survival" style="width:auto;padding:0 22px;background:linear-gradient(135deg,#ff3860,#c0392b);border:none;color:#fff;" onclick="svCheckAnswer()">Valider</button>
+                </div>
+            </div>
+        </div>
+        <div id="survival-result">
+            <div class="result-title">💀 GAME OVER</div>
+            <div class="result-score">Score : <span id="sv-final-score">0</span> bonnes réponses</div>
+            <div class="result-best">Record : <span id="sv-best-score">0</span></div>
+            <button class="btn-main btn-survival" style="margin:0 auto;" onclick="startSurvival()">🔄 Rejouer</button>
+            <button class="btn-main" style="margin:12px auto 0;" onclick="goHome()">← Menu</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODE ESCALADE -->
+<div id="escalade-screen" class="screen">
+    <div class="escalade-inner">
+        <div class="escalade-header">
+            <button class="btn-main" style="width:auto;padding:8px 18px;" onclick="goHome()">← MENU</button>
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                <div class="pill escalade-pill" style="font-size:0.9rem;">📈 ESCALADE</div>
+                <div class="level-display">
+                    <div class="level-badge">Niveau <span id="esc-level">1</span></div>
+                </div>
+                <div style="color:var(--coin);font-weight:800;">🪙 <span id="esc-coins">0</span></div>
+            </div>
+        </div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:18px;" id="esc-dots"></div>
+        <div id="escalade-game-zone">
+            <div class="player-card">
+                <div id="esc-banner-zone"></div>
+                <div class="photo-wrap"><img id="esc-photo" class="player-photo" src=""></div>
+                <div id="esc-revealed-name" style="font-size:2rem;font-weight:800;margin-bottom:8px;opacity:0;transition:opacity 0.5s;min-height:2.5rem;color:var(--escalade);"></div>
+                <div id="esc-remaining" style="font-size:0.88rem;color:var(--text-dim);margin-bottom:18px;font-weight:600;min-height:1.4rem;"></div>
+                <div id="esc-clubs" class="clubs-grid"></div>
+                <div id="esc-hints-area" class="esc-hints-area"></div>
+                <p style="font-size:0.78rem;color:var(--text-dim);font-weight:700;margin:4px 0;text-align:center;">💡 Suggestion</p>
+                <div style="position:relative;display:flex;gap:10px;justify-content:center;">
+                    <div style="position:relative;">
+                        <input type="text" id="esc-input" placeholder="Nom du joueur..." onkeyup="handleAC('esc-input','ac-escalade',true)" onkeypress="if(event.key==='Enter')escCheckAnswer()">
+                        <div id="ac-escalade" class="autocomplete-list" style="display:none;"></div>
+                    </div>
+                    <button class="btn-main btn-escalade" style="width:auto;padding:0 22px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;" onclick="escCheckAnswer()">Valider</button>
+                </div>
+                <button id="esc-next-btn" class="btn-main btn-escalade hidden" style="margin:18px auto 0;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;" onclick="escNextLevelBtn()">Niveau suivant 📈</button>
+            </div>
+        </div>
+        <div id="escalade-result" style="display:none;text-align:center;padding:40px;">
+            <div style="font-size:3rem;font-weight:800;margin-bottom:10px;color:var(--escalade);">🏆 TERMINÉ !</div>
+            <div style="font-size:1.5rem;color:var(--coin);font-weight:800;margin-bottom:6px;">Niveau atteint : <span id="esc-final-level">1</span></div>
+            <div style="font-size:1rem;color:var(--text-dim);margin-bottom:30px;">Coins gagnés : <span id="esc-final-coins" style="color:var(--coin);font-weight:800;">0</span> 🪙</div>
+            <button class="btn-main btn-escalade" style="margin:0 auto;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;" onclick="startEscalade()">🔄 Recommencer</button>
+            <button class="btn-main" style="margin:12px auto 0;" onclick="goHome()">← Menu</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODE PARCOURS -->
+<div id="parcours-screen" class="screen">
+    <div class="parcours-inner">
+        <div class="parcours-header">
+            <button class="btn-main" style="width:auto;padding:8px 18px;" onclick="goHome()">← MENU</button>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <div class="pill" style="border-color:var(--parcours);color:var(--parcours);">🔀 QUI A CE PARCOURS ?</div>
+                <div class="parcours-score-chip">Score : <span id="parcours-score">0</span> / <span id="parcours-total">10</span></div>
+            </div>
+        </div>
+        <div class="progress-dots" id="parcours-dots"></div>
+        <div id="parcours-game-zone" class="parcours-card">
+            <div class="parcours-question-num" id="parcours-qnum">Question 1 / 10</div>
+            <div id="parcours-clubs-display" class="parcours-clubs-display"></div>
+            <div class="parcours-choices" id="parcours-choices"></div>
+            <button id="parcours-next-btn" class="btn-main btn-parcours hidden" style="margin:24px auto 0;background:linear-gradient(135deg,#00bcd4,#0097a7);border:none;" onclick="parcoursNext()">Question suivante ▶</button>
+        </div>
+        <div id="parcours-result" class="parcours-result">
+            <div class="parcours-result-title">🏁 FIN DE PARTIE !</div>
+            <div class="parcours-result-score">Score : <span id="parcours-final-score">0</span> / 10</div>
+            <div style="font-size:1rem;color:var(--text-dim);margin-bottom:24px;" id="parcours-result-msg"></div>
+            <button class="btn-main btn-parcours" style="margin:0 auto;background:linear-gradient(135deg,#00bcd4,#0097a7);border:none;" onclick="startParcours()">🔄 Nouvelle partie</button>
+            <button class="btn-main" style="margin:12px auto 0;" onclick="goHome()">← Menu</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODE HISTORIQUE DES CLUBS -->
+<div id="historique-screen" class="screen">
+    <div class="historique-inner">
+        <div class="historique-header">
+            <button class="btn-main" style="width:auto;padding:8px 18px;" onclick="goHome()">← MENU</button>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <div class="pill" style="border-color:#10b981;color:#10b981;">📋 HISTORIQUE DES CLUBS</div>
+                <div style="color:var(--coin);font-weight:800;font-size:0.88rem;">🪙 <span id="histo-coins-display">0</span></div>
+            </div>
+        </div>
+        <div class="player-card">
+            <div id="histo-daily-banner"></div>
+            <div class="historique-player-reveal">
+                <img id="histo-photo" class="historique-player-photo" src="">
+                <div class="historique-player-name" id="histo-name">?</div>
+                <div class="historique-player-meta" id="histo-meta">?</div>
+            </div>
+            <div class="histo-score" id="histo-score-label">Clubs trouvés : 0 / 0</div>
+            <div class="club-slots" id="histo-slots"></div>
+            <div class="histo-input-area">
+                <p style="font-size:0.78rem;color:var(--text-dim);font-weight:700;margin-bottom:8px;text-align:center;">💡 Écris le nom d'un club</p>
+                <div class="histo-input-wrap">
+                    <div style="position:relative;">
+                        <input type="text" id="histo-input" placeholder="Nom du club..." onkeyup="handleClubAC('histo-input','ac-histo')" onkeypress="if(event.key==='Enter')histoCheck()">
+                        <div id="ac-histo" class="autocomplete-list" style="display:none;"></div>
+                    </div>
+                    <button class="btn-main btn-historique" style="width:auto;padding:0 20px;background:linear-gradient(135deg,#10b981,#059669);border:none;" onclick="histoCheck()">Valider</button>
+                </div>
+                <div id="histo-wrong-list" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;"></div>
+            </div>
+            <div id="histo-result-msg" style="font-size:0.9rem;color:var(--text-dim);font-weight:700;text-align:center;margin-top:8px;min-height:1.4rem;"></div>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+                <button class="histo-reveal-all" id="histo-reveal-btn" onclick="histoRevealAll()">👁️ Révéler les clubs restants</button>
+                <button id="histo-next-btn" class="btn-main btn-historique hidden" style="width:auto;padding:8px 24px;background:linear-gradient(135deg,#10b981,#059669);border:none;" onclick="histoNext()">Joueur suivant ▶</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODE INVERSE -->
+<div id="inverse-screen" class="screen">
+    <div class="inverse-inner">
+        <div class="inverse-header">
+            <button class="btn-main" style="width:auto;padding:8px 18px;" onclick="goHome()">← MENU</button>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <div class="pill" style="border-color:var(--inverse);color:var(--inverse);">🔄 MODE INVERSE</div>
+                <div style="color:var(--coin);font-weight:800;font-size:0.88rem;">🪙 <span id="inv-coins-display">0</span></div>
+            </div>
+        </div>
+        <div class="inverse-card">
+            <div id="inv-daily-banner"></div>
+            <div class="inverse-player-display">
+                <img id="inv-photo" class="inverse-photo" src="">
+                <div class="inverse-player-info">
+                    <div class="inverse-player-name" id="inv-name">?</div>
+                    <div class="inverse-player-meta" id="inv-meta"></div>
+                </div>
+            </div>
+            <div class="inverse-banner" id="inv-banner">🔄 Trouve tous les clubs de ce joueur !</div>
+            <div class="inverse-progress" id="inv-progress">0 / 0 clubs trouvés</div>
+            <div class="inverse-found-clubs" id="inv-found-clubs"></div>
+            <div class="inverse-club-wrong" id="inv-wrong-list"></div>
+            <p style="font-size:0.78rem;color:var(--text-dim);font-weight:700;margin-bottom:8px;text-align:center;">💡 Écris le nom d'un club</p>
+            <div id="inv-input-zone">
+                <div class="inverse-input-row">
+                    <div style="position:relative;">
+                        <input type="text" id="inv-input" placeholder="Nom du club..." onkeyup="handleClubAC('inv-input','ac-inverse')" onkeypress="if(event.key==='Enter')invCheck()">
+                        <div id="ac-inverse" class="autocomplete-list" style="display:none;border-color:var(--inverse);"></div>
+                    </div>
+                    <button class="btn-main btn-inverse" style="width:auto;padding:0 22px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#000;" onclick="invCheck()">Valider</button>
+                </div>
+            </div>
+            <div class="inverse-result-inline" id="inv-result-msg"></div>
+            <button id="inv-next-btn" class="btn-main btn-inverse hidden" style="margin:18px auto 0;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;color:#000;" onclick="invNext()">Joueur suivant ▶</button>
+        </div>
+    </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="lb-modal">
+    <div class="lb-box">
+        <button class="lb-close" onclick="closeLeaderboard()">✕ Fermer</button>
+        <div class="lb-title">🏆 Classement</div>
+        <div class="lb-sub">Top joueurs • Mis à jour en temps réel</div>
+        <div class="lb-tabs">
+            <button class="lb-tab active" onclick="switchLbTab('coins',this)">🪙 Coins</button>
+            <button class="lb-tab" onclick="switchLbTab('streak',this)">🔥 Meill. série</button>
+            <button class="lb-tab" onclick="switchLbTab('wins',this)">✅ Victoires</button>
+            <button class="lb-tab" onclick="switchLbTab('survivalBest',this)">❤️ Survie</button>
+        </div>
+        <div id="lb-body"></div>
+        <div id="lb-mine" class="lb-mine"></div>
+    </div>
+</div>
+
+<!-- RÈGLES DU JEU -->
+<div id="rules-modal">
+    <div class="rules-box">
+        <button class="rules-close" onclick="closeRules()">✕ Fermer</button>
+        <div class="rules-title">📖 Règles du jeu</div>
+        <div class="rules-sub">Comment jouer à chaque mode</div>
+        <div class="rules-mode" style="border-left-color:#f9ca24;">
+            <div class="rules-mode-title">🌟 Défi du Jour</div>
+            <div class="rules-mode-body"><ul>
+                <li>Chaque jour, un défi aléatoire parmi tous les modes t'attend</li>
+                <li>Le mode est tiré au sort : Classique, Inverse, Historique, Survie, Escalade ou Parcours</li>
+                <li>Tu ne peux le faire <strong>qu'une seule fois par jour</strong></li>
+                <li>Bonus de +3 🪙 pour avoir complété le défi du jour</li>
+            </ul></div>
+        </div>
+        <div class="rules-mode" style="border-left-color:var(--primary);">
+            <div class="rules-mode-title">▶ Mode Classique</div>
+            <div class="rules-mode-body"><ul>
+                <li>Un joueur est caché derrière une photo floutée</li>
+                <li>Des logos de clubs sont révélés un par un</li>
+                <li>Devine le joueur en tapant son nom (saisie intuitive !)</li>
+                <li>Chaque mauvaise réponse = un club de plus révélé</li>
+                <li>Bonne réponse = +1 🪙 (bonus de série dès x3)</li>
+                <li>Indices disponibles : Nationalité et Poste (5 🪙 chacun)</li>
+                <li>Limité à <strong>1 partie par jour</strong></li>
+            </ul></div>
+        </div>
+        <div class="rules-mode" style="border-left-color:var(--inverse);">
+            <div class="rules-mode-title">🔄 Mode Inverse</div>
+            <div class="rules-mode-body"><ul>
+                <li>Cette fois, on te montre le joueur (nom + photo)</li>
+                <li>C'est toi qui dois trouver <strong>tous ses clubs</strong></li>
+                <li>Écris le nom d'un club (saisie intuitive sur les clubs !)</li>
+                <li>Tu gagnes des coins pour chaque club trouvé</li>
+                <li>Les erreurs sont affichées mais ne te font pas perdre</li>
+                <li>Limité à <strong>1 partie par jour</strong></li>
+            </ul></div>
+        </div>
+        <div class="rules-mode" style="border-left-color:#10b981;">
+            <div class="rules-mode-title">📋 Historique des Clubs</div>
+            <div class="rules-mode-body"><ul>
+                <li>Un joueur avec sa photo et son nom est affiché</li>
+                <li>Tu dois retrouver tous ses clubs dans n'importe quel ordre</li>
+                <li>Écris les noms de clubs (saisie intuitive)</li>
+                <li>Les emplacements se remplissent au fur et à mesure</li>
+                <li>Tu peux révéler les clubs restants à tout moment (pénalité coins)</li>
+                <li>Limité à <strong>1 partie par jour</strong></li>
+            </ul></div>
+        </div>
+        <div class="rules-mode" style="border-left-color:var(--survival);">
+            <div class="rules-mode-title">❤️ Mode Survie</div>
+            <div class="rules-mode-body"><ul>
+                <li>Tu as 3 vies et un chrono de 20 secondes par question</li>
+                <li>Devine le joueur le plus vite possible</li>
+                <li>Mauvaise réponse ou temps écoulé = -1 vie</li>
+                <li>La partie s'arrête quand tu n'as plus de vies</li>
+                <li>Tu gagnes 1 🪙 par bonne réponse</li>
+                <li>Limité à <strong>1 partie par jour</strong></li>
+            </ul></div>
+        </div>
+        <div class="rules-mode" style="border-left-color:var(--escalade);">
+            <div class="rules-mode-title">📈 Mode Escalade</div>
+            <div class="rules-mode-body"><ul>
+                <li>8 niveaux de difficulté croissante</li>
+                <li>Au niveau 1 : tu vois 1 club + indices (nation + poste déjà affichés !)</li>
+                <li>Chaque niveau, un club de plus est potentiellement visible</li>
+                <li>Mais les indices (nation, poste) sont toujours visibles pour t'aider</li>
+                <li>Une mauvaise réponse finale = fin de la partie</li>
+                <li>Plus tu progresses haut, plus tu gagnes de coins</li>
+                <li>Limité à <strong>1 partie par jour</strong></li>
+            </ul></div>
+        </div>
+        <div class="rules-mode" style="border-left-color:var(--parcours);">
+            <div class="rules-mode-title">🔀 Qui a ce parcours ?</div>
+            <div class="rules-mode-body"><ul>
+                <li>On te montre une suite de logos de clubs</li>
+                <li>Tu dois identifier le joueur parmi 4 choix</li>
+                <li>Les photos des joueurs sont floutées au départ</li>
+                <li>10 questions par partie, +1 🪙 par bonne réponse</li>
+                <li>Limité à <strong>1 partie par jour</strong></li>
+            </ul></div>
+        </div>
+    </div>
+</div>
+
+<!-- DÉFI DU JOUR MODAL -->
+<div id="daily-modal">
+    <div class="daily-modal-box">
+        <button class="daily-close" onclick="closeDailyModal()">✕</button>
+        <div class="daily-modal-title">🌟 Défi du Jour</div>
+        <div class="daily-modal-sub" id="daily-modal-date"></div>
+        <div id="daily-modal-buttons"></div>
+    </div>
+</div>
+
+<!-- RECHERCHE -->
+<div id="search-modal">
+    <div class="search-container">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+            <h2 style="margin:0;font-weight:800;">BASE DE DONNÉES</h2>
+            <button class="btn-main" style="width:auto;padding:5px 14px;" onclick="closeSearch()">FERMER</button>
+        </div>
+        <input type="text" id="searchInput" onkeyup="runSearch()" placeholder="Rechercher un joueur, club, nation..." style="width:100%;box-sizing:border-box;margin-bottom:18px;padding:14px;border-radius:10px;border:1px solid var(--border);background:#1a1c1e;color:white;font-family:'Poppins',sans-serif;outline:none;">
+        <div class="tbl-header">
+            <span>Photo</span><span>Joueur</span>
+            <span onclick="toggleSort('poste')" style="cursor:pointer">Poste ↕</span>
+            <span onclick="toggleSort('nation')" style="cursor:pointer">Nation ↕</span>
+            <span>Parcours</span>
+        </div>
+        <div id="results-body" style="overflow-y:auto;flex:1;background:#0a0b0d;"></div>
+    </div>
+</div>
+
+<script>
+        const flagsDB = {
+            "France": "https://cdn3.futbin.com/content/fifa26/img/nation/18.png?fm=png&ixlib=java-2.1.0&verzion=2&w=48&s=2f78b94898a666d8e16653e9975f388e",
+            "Brésil": "https://cdn3.futbin.com/content/fifa26/img/nation/54.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=cbca1d2fa14846ce521664553c017e34",
+            "Argentine": "https://cdn3.futbin.com/content/fifa26/img/nation/52.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=0ac89808d5b0ffb7d4c4f52df6e1234a",
+            "Portugal": "https://cdn3.futbin.com/content/fifa26/img/nation/38.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=b7df856f1dd65033f2130e49b9ad1515",
+            "Cameroun": "https://cdn3.futbin.com/content/fifa26/img/nation/103.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=9c3f83b73328ab88ed4b33d044dc4220",
+            "Pologne": "https://cdn3.futbin.com/content/fifa26/img/nation/37.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=4206f016830a8739e6a0ba2d8824dda5",
+            "Égypte": "https://cdn3.futbin.com/content/fifa26/img/nation/111.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=7965f8f1e66cfb3f9ccd0bb06af5687a",
+            "Maroc": "https://cdn3.futbin.com/content/fifa26/img/nation/129.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=3c7a0cbe7db7ffb94e101661cc6b568a",
+            "Belgique": "https://cdn3.futbin.com/content/fifa26/img/nation/7.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=29bdc3385b18d7615c0a424ea5dda2c5",
+            "Espagne": "https://cdn3.futbin.com/content/fifa26/img/nation/45.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=fa922fce89a23a37fb44c01c731cb00b",
+            "Croatie": "https://cdn3.futbin.com/content/fifa26/img/nation/10.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=dadd7f26182e031960adef7f52e53cde",
+            "Nigéria": "https://cdn3.futbin.com/content/fifa26/img/nation/133.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=18854613b85552d12aa2cab9175baa2e",
+            "Canada": "https://cdn3.futbin.com/content/fifa26/img/nation/70.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=b5468d3f532c8058deef7a13ab81cbe7",
+            "Corée du Sud": "https://cdn3.futbin.com/content/fifa26/img/nation/167.png?fm=png&ixlib=java-2.1.0&verzion=2&w=48&s=069c7c1eb1cd2a5df7b21b9b759c1296",
+            "Angleterre": "https://cdn3.futbin.com/content/fifa26/img/nation/14.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=8a020e06f91d35852ed1dd14c821cfba",
+            "Uruguay": "https://cdn3.futbin.com/content/fifa26/img/nation/60.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=a3a3c31a1f99809c609fe63e66f307f3",
+            "Norvège": "https://cdn3.futbin.com/content/fifa26/img/nation/36.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=99490ae4aa714fbcb221210db8a7612c",
+            "Italie": "https://cdn3.futbin.com/content/fifa26/img/nation/27.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=5aaca5103be8ad62f29f49eaa5f99fd7",
+            "Côte d'Ivoire": "https://cdn3.futbin.com/content/fifa26/img/nation/108.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=87b19779f2e3e541f11182019a417496",
+            "Suède": "https://cdn3.futbin.com/content/fifa26/img/nation/46.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=1990eca0d6a9c250348f5f7a39ab9619",
+            "Suisse": "https://cdn3.futbin.com/content/fifa26/img/nation/47.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=031eb8066babb0d7119984f50f1c6ecf",
+            "Costa Rica": "https://cdn3.futbin.com/content/fifa26/img/nation/72.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=340a490410b6afaa045991109074de40",
+            "Pays-Bas": "https://cdn3.futbin.com/content/fifa26/img/nation/34.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=a3dff73fcc1e1d0c971a2e841cff60e9",
+            "Slovénie": "https://cdn3.futbin.com/content/fifa26/img/nation/44.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=bbdf91a6becf22ea2d98ee54633b07b1",
+            "Danemark": "https://cdn3.futbin.com/content/fifa26/img/nation/13.png?fm=png&ixlib=java-2.1.0&verzion=2&w=40&s=e41c59ecbd00a9f7a7c72e4e5a285362",
+        };
+
+        // ==========================================
+        // 2. ESPACE LOGOS CLUBS
+        // ==========================================
+        const clubsDB = {
+            "Girona": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/110062.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=900e9fb6624eac83b7bbbe96c822be72",
+            "Troyes": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/294.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=ef9e3a1d477ddfd1b824c6ef50810dbf",
+            "PSV": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/247.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=807663dc596c973f0070784de53e1514",
+            "Man City": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/10.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=0d8bbae5df5cedfa1edee4a39c37fc1b",
+            "Barcelone": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/241.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=d9b40cf75d2d4f3c0b7f9284edf8f9f8",
+            "PSG": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/73.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=63f44ad90a4b81601443df177cbcb69a",
+            "Inter Miami": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/112893.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=4a93fb3f98f9c504feac44b5a7dad7ec",
+            "Monaco": "https://th.bing.com/th/id/OIP.xjiJzKGoOo2dAp72oTd9gAHaHa?w=114&h=181&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Real Madrid": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/243.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=ef1f19bbabddd8f8ff385c88eceeaa7f",
+            "Chelsea": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/5.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=3e0b6a8c92b217f68d33693c872eb828",
+            "Fiorentina": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/110374.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=134e9b3149c2fbdc1479ff6507711728",
+            "AS Rome": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/52.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=05577957fa33c63738aa5e094b450c01",
+            "Liverpool": "https://th.bing.com/th/id/OIP.gc8i5ruQHi9F7hyVCV0rvAHaHa?w=179&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+            "Lech Poznan": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/873.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=3f636ef65fde7a55f1af5f4f5cee1510",
+            "Dortmund": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/22.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=454763e0d2299067cdc921196aae2c90",
+            "Bayern Munich": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/21.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=592f7bf9267cc2a3c7b077a11f3bb6c7",
+            "Molde": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/417.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=c2d9e1724b98a9d1e1d11dc5a956496b",
+            "Salzbourg": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/191.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=acd3d63b0045fa40c2fe342230077a69",
+            "Tottenham": "https://www.bing.com/th/id/OIP.IhmWfrB8zEL3IFQ6ytvurQHaHa?w=190&h=211&c=8&rs=1&qlt=90&o=6&cb=defcache1&dpr=1.3&pid=3.1&rm=2&defcache=1",
+            "Sporting CP": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/237.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=53396fb6591fb2b78818d82625b95f80",
+            "Man United": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/11.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=4a969f1c3a9974f24c680cf9ba63e6ec",
+            "Juventus": "https://th.bing.com/th/id/OIP.PE4xEqRjro7-inoMjkDNEwHaFp?w=243&h=185&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+            "Al-Nassr": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/112139.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=a03e34fd8da0686eb6621e6e1a6a70a3",
+            "AC Milan": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/47.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=19af0e13417902579c53228b54d82386",
+            "Atletico Madrid": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/240.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=a92aeffd4d2b71ed166adf936786162e",
+            "Benfica": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/234.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=87dc8bfefc6fabfd510a66c1d6b3289a",
+            "Alavés": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/463.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=d4639cc9c09f369d653c025e70dfd762",
+            "Real Sociedad": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/457.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=b0a0dc3c9641dffc0e177307b03561e2",
+            "Bayer Leverkusen": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/32.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=d7a51029d9ab6358b068624cab40768b",
+            "Leicester City": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/95.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=c49dc8938cd626811dfc4bda91ef38ea",
+            "West Ham": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/19.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=eb8ae5f5694b072aabcad334199343c0",
+            "Aston Villa": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/2.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=5693e406e6781beba1550a85ab2521a7",
+            "Villarreal": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/483.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=15f9d134a8ed33649d485eaa65a6fe4c",
+            "Naples": "https://www.bing.com/th/id/OIP.x_CGqe-oLU5BRZ-WU8r1ywHaHa?w=185&h=211&c=8&rs=1&qlt=90&o=6&cb=defcache1&dpr=1.3&pid=3.1&rm=2&defcache=1",
+            "Inter Milan": "https://www.pngplay.com/wp-content/uploads/13/Inter-Milan-PNG-HD-Quality.png",
+            "Ajax": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/245.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=77a2797a8be4699a835347ac37c0dc39",
+
+            "Bâle": "https://th.bing.com/th/id/OIP.DO_4o_wJQkeTrdn08WWkhAHaEe?w=289&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+            "Mönchengladbach": "https://th.bing.com/th/id/OIP.vG-xrstER9X2It0awm_JfgHaHk?w=187&h=191&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+            "Arsenal": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=9977ad1cf6b36702bc4ef8d987ddaab4",
+            "Boulogne": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/132680.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=a19184035de90fa2980601c0bc10b911",
+            "Caen": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/210.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=128b30e4328edfafd55228c8585768b1",
+            "Al-Ittihad": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/607.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=5325220381775cfcd642a7ac67ef90ca",
+            "Groningue": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1915.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=88041b9e328bf3768e8e3fa6853b4ae1",
+            "LA Galaxy": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/697.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=55c0ea7d627b5712ff0f83ab5ee57617",
+            "Reading": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1793.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=9b5c6ffc228e021c0a280f7486fa47e8",
+            "Getafe": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1860.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=ffe1fa9268c579867b36cae8d66a7a85",
+            "Lille": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/65.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=53f74412c619306abe67740c75aef593",
+            "Newcastle": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/13.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=62fc5cd592d0753fd72cf57346110d8a",
+            "Everton": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/7.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=248fb358539e67eb702462a1f39457dd",
+            "Valence": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/461.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=96e0a43bcdb7f3fec01d71e08e93984f",
+            "Seville": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/481.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=f54cc98a0afb135e13d421abb6dc1d57",
+            "RB Leipzig": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/112172.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=1681e2382637691a5b71a810261af293",
+            "Lyon": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/66.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=6fe33d99de483b995531131354479584",
+            "Frankfort": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1824.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=b0289b65ca30139eac2dba62da654e18",
+            "Rennes": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/74.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=895625ff5be751ceb461aa7a0f8ddf91",
+            "Nantes": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/71.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=164be9c3dfaaa372337b5421b4fe86b4",
+            "Le Havre": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1738.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=b2ffb2c8f5753f32ec0bf50d6f7741b9",
+            "Marseille": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/219.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=7af9e277a8bf2bd2f9ffdd96729d710f",
+            "Al-Hilal": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/605.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=1561f5f3b004b780ce83e5ad9025e43c",
+            "Bilbao": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/448.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=520f435eb528b24af7d8d9d9efd4f055",
+            "Albacete Balompié": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1854.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=f8f94bf8fdaf84aa3f5157715de661a9",
+            "Bayer 04 Leverkusen":"https://cdn3.futbin.com/content/fifa26/img/clubs/dark/32.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=d7a51029d9ab6358b068624cab40768b",
+            "Hambourg SV":"https://cdn3.futbin.com/content/fifa26/img/clubs/dark/28.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=4bb0fdd375ad9007566ef0f385c94396",
+            "Flamengo": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1043.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=912f21168224f782ba23514410e4022c",
+            "Genk": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/673.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=c6bc716e72e0fdbfe01d8c683cf03277",
+            "Werder Brême": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/38.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=42078ac16a37caebc0b135ffc04d0033",
+            "Wolfsburg": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/175.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=7bd9d4ad89028a292458605145c9a795",
+            "Charleroi": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/670.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=91fbf2910a6b6be148991371386144ec",
+            "Galatasaray": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/325.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=05f310d56853d67fc7dca4dbd969c16f",
+            "Vancouver": "https://www.bing.com/th/id/OIP.w4MmC1-q-JTEj2PENpaErAHaHk?w=200&h=211&c=8&rs=1&qlt=90&o=6&dpr=1.3&pid=3.1&rm=2",
+            "Dinamo Zagreb": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/211.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=bf0bce2a89cdaaec7c0cbe707a0deb44",
+            "Peñarol": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/101110.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=7cf39452c1344ab49f76d94e517af2f0",
+            "Racing Club": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/101085.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=cab4cf240f6d39e75ae8a52efdd722d4",
+            "Birmingham City": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/88.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=821720692d5d9be361c0d1d1a2f19d8a",
+            "Deportivo La Corogne": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/242.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=b57670f82e03e77cb577f3e4c3046033",
+            "Cannes": "https://www.bing.com/th/id/OIP.KQKvAOybKhAswVb7kLzUcgHaI0?w=179&h=211&c=8&rs=1&qlt=90&o=6&dpr=1.3&pid=3.1&rm=2",
+            "Bordeaux": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/59.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=69a63459b7cc0d8f4a82c5a3e553fd95",
+            "Metz": "https://th.bing.com/th/id/OIP.5epxUB7rgKGyF4N9pLr-pAHaHa?w=170&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+            "Brest": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/378.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=87c0d94bd91aaf7ca2ebdd40c6f223c4",
+            "Alès": "https://www.bing.com/th/id/OIP.GuMfkP_mu1RKSybbp8iTmgHaHa?w=167&h=211&c=8&rs=1&qlt=90&o=6&dpr=1.3&pid=3.1&rm=2",
+            "Guingamp": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/62.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=8634f62242974db5ee1dc0937106ae8f",
+            "Le Mans": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1739.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=f85eee9b329a8b838bff37b1b0cd7493",
+            "Grêmio": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1629.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=0bc5e9997fb1e0dbcf8cbbfa2a5a73d3",
+            "Atlético Mineiro": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1035.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=1087a664999a17b014cbc5aeab7f11c9",
+            "Cruzeiro": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/568.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=500f7747747bdd3c7a92c8f9852fb96b",
+            "Corinthians": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1041.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=6de9a567da3d9cdc4a29317254cc1e89",
+            "São Paulo": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/598.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=ef32f7df136421792ce63a0e7d4c90f2",
+            "Independiente": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/110093.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=394203194ca6ad2f74cf6785932fd35c",
+            "Majorque": "https://www.bing.com/th/id/OIP.XuSALk4MQhApCiN4UcRsTAHaHk?w=189&h=211&c=8&rs=1&qlt=90&o=6&dpr=1.3&pid=3.1&rm=2",
+            "Orlando City": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/112606.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=ae3019a1f30ff4c882af115258a4b186",
+            "NY Red Bulls": "https://www.bing.com/th/id/OIP.rKzvghKJJHwfBqFrwHgzDQHaHa?w=177&h=211&c=8&rs=1&qlt=90&o=6&dpr=1.3&pid=3.1&rm=2",
+            "Montreal Impact": "https://upload.wikimedia.org/wikipedia/fr/thumb/7/70/Logo_Impact_de_Montr%C3%A9al_%28MLS%29.svg/1280px-Logo_Impact_de_Montr%C3%A9al_%28MLS%29.svg.png?20140103013457",
+
+            "DC United": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/688.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=915c0aa00504c48ffb6c0ec61305cd23",
+            "Derby County": "data:image/webp;base64,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",
+            "Toulon": "https://th.bing.com/th/id/OIP.l_woz85ZNBeOMacDVDLsPQHaHa?w=179&h=180&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Al-Sadd": "https://th.bing.com/th/id/OIP.cuDXzaml1CgunQPmXY1jxgAAAA?w=140&h=150&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
+            "Parme": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/50.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=6c4f39118b32a4957e165f48bd669b2c",
+            "Nice": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/72.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=509acd51f52071240ca2dacebf1a1927",
+            "Feyenoord": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/246.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=12a455dd7b9a3b8b4d6461753250b3ae",
+            "New York City FC": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/112828.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=df7df64704e376e19e982362e6003da2",
+            "Empoli": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1746.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=0b96b6ac30373522f51eb43115833405",
+            "Zenit Saint-Pétersbourg": "https://th.bing.com/th/id/OIP.P1_YfMdjCamq9LONwqpWYgHaHk?w=193&h=197&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Leeds United": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/8.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=734c27b64a43a43967fabdaa091878af",
+            "Anderlecht": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/229.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=b9f9d02b25d8464e36d60a5acfc09d65",
+            "Olympiakos": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/280.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=fccf262ea7e4ee9da1ce6f52d55076ba",
+            "QPR": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/15.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=104aba5545af845c190006d405252aa5",
+            "Leganés": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/100888.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=717f6cf2d8e737b87e0bd6017382ff74",
+            "Anji Makhatchkala": "https://th.bing.com/th/id/OIP.GmhcrliZPPE8-AdmrwzXHAHaEH?w=243&h=180&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Preston North End": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1801.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=c4ed21b7c0f72bd322dfca717bc522e4",
+            "Kyoto Sanga": "https://th.bing.com/th/id/OIP.7-Xer7whBVA9aWThjKyQDQAAAA?w=71&h=100&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Metalurh Donetsk": "https://th.bing.com/th/id/OIP.npgGUefV2vD4f7ChbUq64QHaHa?w=169&h=180&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Beveren": "https://th.bing.com/th/id/OIP.Wcgrzm0RxFWf6fnIIDTn5wHaI5?w=176&h=211&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "LA Aztecs": "https://th.bing.com/th/id/OIP.YaTmD78YldMMwp1xumbsDgHaHa?w=181&h=181&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Washington Diplomats": "https://th.bing.com/th/id/OIP.QmbStRDTyHpi4PNFNh_5nAAAAA?w=163&h=180&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Levante": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1853.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=b10ad6c3d05ff153999d1982a66c1193",
+            "Matra Racing": "https://th.bing.com/th/id/OIP.LvIY-b8DiYOe83JjxwXhDwHaEK?w=281&h=180&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Al-Gharafa": "https://th.bing.com/th/id/OIP.AHORHuL_laAOrgI6EiWkOwHaHk?w=191&h=195&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Brescia": "https://th.bing.com/th/id/OIP.DpeVnmEqyrullXQldULLJAHaEk?w=285&h=180&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Reggina": "https://th.bing.com/th/id/OIP.YJMoeY3-WdpEZXnTYQYiawAAAA?w=311&h=192&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+            "Bournemouth": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/1943.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=ae2f60245b36a7e1f60eb50c3e7e7370",
+            "Fenerbahce": "https://cdn3.futbin.com/content/fifa26/img/clubs/dark/326.png?fm=png&ixlib=java-2.1.0&verzion=3&w=40&s=b0077509fd1324109ababd980c886914",
+        };
+
+        // ==========================================
+        // 3. ESPACE BASE DE DONNÉES JOUEURS
+        // ==========================================
+const database = [
+        {
+                name: "Samuel Umtiti",
+                nation: "France",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa22/img/players/p67314464.png?fm=png&ixlib=java-2.1.0&w=485&s=02a7acd4ac1e28c46a13fe3b82bc80ef",
+                clubs: ["Lyon", "Barcelone", "Lille"]
+            },
+            {
+                name: "Ederson",
+                nation: "Brésil",
+                pos: "G",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67319121.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=39c107ba8301be0f1f7c634999766276",
+                clubs: ["Benfica", "Man City", "Fenerbahce"]
+            },
+            {
+                name: "Raphaël Varane",
+                nation: "France",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa22/img/players/p100864831.png?fm=png&ixlib=java-2.1.0&w=485&s=2958e473691a1befa3ea7b3b78a6a423",
+                clubs: ["Real Madrid", "Man United", "Parme"]
+            },
+            {
+                name: "Lucas Digne",
+                nation: "France",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50532106.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=e1996440d24e3a06e46c8756cd2f1341",
+                clubs: ["Lille", "PSG", "AS Rome", "Barcelone", "Everton", "Aston Villa"]
+            },
+            {
+                name: "Jan Oblak",
+                nation: "Slovénie",
+                pos: "G",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50532037.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=9706a2f22cfdf811ef57364e373635f5",
+                clubs: ["Benfica", "Atletico Madrid"]
+            },
+            {
+                name: "Bixente Lizarazu",
+                nation: "France",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/5454.png?fm=png&ixlib=java-2.1.0&verzion=2&w=512&s=62ee26e2a251a10e480925a86028b1fe",
+                clubs: ["Bordeaux", "Bilbao", "Bayern Munich", "Marseille"]
+            },
+              {
+                name: "Sávio",
+                nation: "Brésil",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50602057.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=a4bf748b8ed01e654a5fdb01e76e3911",
+                clubs: ["Girona", "Troyes", "PSV", "Man City"]
+            },
+            {
+                name: "Lionel Messi",
+                nation: "Argentine",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p117598535.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=20cfe71d374c4e0a14c830e25455eb0f",
+                clubs: ["Barcelone", "PSG", "Inter Miami"]
+            },
+            {
+                name: "Kylian Mbappé",
+                nation: "France",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67340611.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=6dcd0ad869f2d76db5937265e0cf203f",
+                clubs: ["Monaco", "PSG", "Real Madrid"]
+            },
+            {
+                name: "Mohamed Salah",
+                nation: "Égypte",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p84095411.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=26f0658d797e56cbc70e9d0c6fcd8e84",
+                clubs: ["Chelsea", "Fiorentina", "AS Rome", "Liverpool"]
+            },
+            {
+                name: "Robert Lewandowski",
+                nation: "Pologne",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50520193.png?fm=png&ixlib=java-2.1.0&verzion=2&w=485&s=188a4b1031e81828d002c7971ba826bb",
+                clubs: ["Lech Poznan", "Dortmund", "Bayern Munich", "Barcelone"]
+            },
+            {
+                name: "Erling Haaland",
+                nation: "Norvège",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p84125165.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=7f71fde17009b7f77d2cacad5d1b00c5",
+                clubs: ["Molde", "Salzbourg", "Dortmund", "Man City"]
+            },
+            {
+                name: "Cristiano Ronaldo",
+                nation: "Portugal",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p100684097.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=abdebb5a256ba2331a66b61a49f09e31",
+                clubs: ["Sporting CP", "Man United", "Real Madrid", "Juventus","Man United", "Al-Nassr"]
+            },
+            {
+                name: "Harry Kane",
+                nation: "Angleterre",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p151197070.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=7a8d9df8c5d8db55266f455440cc579b",
+                clubs: ["Tottenham", "Bayern Munich"]
+            },
+            {
+                name: "Antoine Griezmann",
+                nation: "France",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa24/img/players/p167966925.png?fm=png&ixlib=java-2.1.0&w=448&s=1d6bd51030c4d795726ffc7cf6a0864c",
+                clubs: ["Real Sociedad", "Atletico Madrid", "Barcelone","Atletico Madrid"]
+            },
+            {
+                name: "Theo Hernández",
+                nation: "France",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50564304.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=2024e867ce7472e04fabd6dd78dcf6c7",
+                clubs: ["Atletico Madrid", "Alavés", "Real Madrid", "Real Sociedad", "AC Milan"]
+            },
+            {
+                name: "Granit Xhaka",
+                nation: "Suisse",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50531151.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=1bd414fec83ffdb3389894ec80afb839",
+                clubs: ["Bâle", "Mönchengladbach", "Arsenal", "Bayer Leverkusen"]
+            },
+            {
+                name: "N'Golo Kanté",
+                nation: "France",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67324778.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=a1114ae19f39e157ef985fff2d156563",
+                clubs: ["Boulogne", "Caen", "Leicester City", "Chelsea", "Al-Ittihad"]
+            },
+            {
+                name: "Achraf Hakimi",
+                nation: "Maroc",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa25/img/players/p50566860.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=d6245047e232c41df48c9f21075b3862",
+                clubs: ["Real Madrid", "Dortmund", "Inter Milan", "PSG"]
+            },
+            {
+                name: "Luis Suárez",
+                nation: "Uruguay",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50508228.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=4d5886f02b222d89ebf8577e87dc7c32",
+                clubs: ["Groningue", "Ajax", "Liverpool", "Barcelone", "Atletico Madrid", "Inter Miami"]
+            },
+            {
+                name: "Zlatan Ibrahimović",
+                nation: "Suède",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p134258964.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=ba5cde4dd237d719e0be5d868b645dbb",
+                clubs: ["Ajax", "Juventus", "Inter Milan", "Barcelone", "AC Milan", "PSG", "Man United", "LA Galaxy"]
+            },
+            {
+                name: "Emiliano Martínez",
+                nation: "Argentine",
+                pos: "G",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/202811.png?fm=png&ixlib=java-2.1.0&verzion=1&w=324&s=d7d48ebf07d96e4dcbb354802f8e4ab9",
+                clubs: ["Arsenal", "Getafe", "Reading", "Aston Villa"]
+            },
+            {
+            name: "Cristian kofane",
+            nation: "Cameroun",
+            pos: "ATT",
+            photo: "https://cdn3.futbin.com/content/fifa26/img/players/76416.png?fm=png&ixlib=java-2.1.0&verzion=1&w=324&s=73e856fb95b679876755ba42748862a0",
+            clubs: ["Albacete Balompié", "Bayer 04 Leverkusen",]
+            },
+            {
+                name: "Vinícius Júnior",
+                nation: "Brésil",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50570442.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=6e34adfdbd8ae979e07fe4ba968c76a3",
+                clubs: ["Flamengo", "Real Madrid"]
+            },
+            {
+                name: "Kevin De Bruyne",
+                nation: "Belgique",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67301849.png?fm=png&ixlib=java-2.1.0&verzion=2&w=485&s=d785f2b0c817d83b1bd885ab1ab24aa6",
+                clubs: ["Genk", "Chelsea", "Werder Brême", "Wolfsburg", "Man City","Naples"]
+            },
+            {
+                name: "Lamine Yamal",
+                nation: "Espagne",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p100940939.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=b56f90e1e23a3d7ebcddf98c18807252",
+                clubs: ["Barcelone"]
+            },
+            {
+                name: "Jude Bellingham",
+                nation: "Angleterre",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67361235.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=e12fbfadfe44dfe4c04a9effa909ca8c",
+                clubs: ["Birmingham City", "Dortmund", "Real Madrid"]
+            },
+            {
+                name: "Luka Modrić",
+                nation: "Croatie",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67285867.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=9341167943dedaec535c52803ae696cf",
+                clubs: ["Dinamo Zagreb", "Tottenham", "Real Madrid"]
+            },
+            {
+                name: "Victor Osimhen",
+                nation: "Nigéria",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50563941.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=10ae5cb5fe002ae742a79347c91413a2",
+                clubs: ["Wolfsburg", "Charleroi", "Lille", "Naples", "Galatasaray"]
+            },
+            {
+                name: "Alphonso Davies",
+                nation: "Canada",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa22/img/players/p134452124.png?fm=png&ixlib=java-2.1.0&w=344&s=6956c4fb13e60e474bc402d0a50a2620",
+                clubs: ["Vancouver", "Bayern Munich"]
+            },
+            {
+                name: "Son Heung-min",
+                nation: "Corée du Sud",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50531752.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=a9821cf4138dc6328ee6763974918aff",
+                clubs: ["Hambourg SV", "Bayer Leverkusen", "Tottenham"]
+            },
+            {
+                name: "Federico Valverde",
+                nation: "Uruguay",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67347917.png?fm=png&ixlib=java-2.1.0&verzion=2&w=485&s=f3c89fd16d790f56d0e5d1e418b85c18",
+                clubs: ["Peñarol", "Real Madrid", "Deportivo La Corogne","Real Madrid"]
+            },
+            {
+                name: "Lautaro Martínez",
+                nation: "Argentine",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p100894774.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=31ea1f72e7cc9077c71eb5e6e2cad162",
+                clubs: ["Racing Club", "Inter Milan"]
+            },
+            {
+                name: "Zinédine Zidane",
+                nation: "France",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50333045.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=f98d8fa5d65bfc7912b88f89e2847017",
+                clubs: ["Cannes", "Bordeaux", "Juventus", "Real Madrid"]
+            },
+            {
+                name: "Ronaldinho",
+                nation: "Brésil",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/28130.png?fm=png&ixlib=java-2.1.0&verzion=3&w=512&s=77d4d58ef31c545592cc91c85592fa01",
+                clubs: ["Grêmio", "PSG", "Barcelone", "AC Milan", "Flamengo", "Atlético Mineiro"]
+            },
+            {
+                name: "David Beckham",
+                nation: "Angleterre",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50331898.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=3843c628bbe37dd27a15044d37b2310d",
+                clubs: ["Man United", "Preston North End", "Real Madrid", "LA Galaxy", "AC Milan", "PSG"]
+            },
+            {
+                name: "Ronaldo Lima",
+                nation: "Brésil",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/37576.png?fm=png&ixlib=java-2.1.0&verzion=3&w=512&s=6f020b47d27aa3ddb876e8f63468484a",
+                clubs: ["Cruzeiro", "PSV", "Barcelone", "Inter Milan", "Real Madrid", "AC Milan", "Corinthians"]
+            },
+            {
+                name: "Thierry Henry",
+                nation: "France",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67110489.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=47d29200bed568f667a78ba5e6a44fb3",
+                clubs: ["Monaco", "Juventus", "Arsenal", "Barcelone", "NY Red Bulls"]
+            },
+            {
+                name: "Yaya Touré",
+                nation: "Côte d'Ivoire",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50351937.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=7503d8129b6fc35510de3200c8d8ec58",
+                clubs: ["Beveren", "Metalurh Donetsk", "Olympiakos", "Monaco", "Barcelone", "Man City"]
+            },
+            {
+                name: "Franck Ribéry",
+                nation: "France",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50488264.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=d4986c6e766baa9ee1b7ab6ed1eb30b5",
+                clubs: ["Boulogne", "Alès", "Brest", "Metz", "Galatasaray", "Marseille", "Bayern Munich", "Fiorentina"]
+            },
+            {
+                name: "Samuel Eto'o",
+                nation: "Cameroun",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50341324.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=5fb7031b2b4e474efd3d307f2ea91725",
+                clubs: ["Real Madrid", "Leganés", "Majorque", "Barcelone", "Inter Milan", "Anji Makhatchkala", "Chelsea"]
+            },
+            {
+                name: "Didier Drogba",
+                nation: "Côte d'Ivoire",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50363080.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=c0f899419bbb2e4072d8a22418acdf97",
+                clubs: ["Le Mans", "Guingamp", "Marseille", "Chelsea", "Galatasaray", "Montreal Impact"]
+            },
+            {
+                name: "Paolo Maldini",
+                nation: "Italie",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p84124519.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=c5d09403489563426a31b17d0ac7ca38",
+                clubs: ["AC Milan"]
+            },
+            {
+                name: "Vincent Kompany",
+                nation: "Belgique",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50583131.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=8c406e63053b345d82c90542cc555f30",
+                clubs: ["Anderlecht", "Hambourg SV", "Man City"]
+            },
+            {
+                name: "Park Ji-sung",
+                nation: "Corée du Sud",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50598121.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=1edf9240599cd806dfe3a9d05e93beb7",
+                clubs: ["Kyoto Sanga", "PSV", "Man United", "QPR"]
+            },
+            {
+                name: "Diego Forlán",
+                nation: "Uruguay",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50598339.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=728251c5524a7ba20323e41577390ebe",
+                clubs: ["Independiente", "Man United", "Villarreal", "Atletico Madrid", "Inter Milan"]
+            },
+            {
+                name: "Steven Gerrard",
+                nation: "Angleterre",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50345391.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=5b9e153a8fe5203655bec65a0a4d902c",
+                clubs: ["Liverpool", "LA Galaxy"]
+            },
+            {
+                name: "Kaka",
+                nation: "Brésil",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/138449.png?fm=png&ixlib=java-2.1.0&verzion=3&w=512&s=7be5251a9af537adb57a7c3bd4c6df9a",
+                clubs: ["São Paulo", "AC Milan", "Real Madrid", "Orlando City"]
+            },
+            {
+                name: "Wayne Rooney",
+                nation: "Angleterre",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50385698.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=048dfee4c7c975fc3c0df36919c7ed24",
+                clubs: ["Everton", "Man United", "Everton", "DC United", "Derby County"]
+            },
+            {
+                name: "Eden Hazard",
+                nation: "Belgique",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50514925.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=97470f9d2743dc208f6517185e4c7978",
+                clubs: ["Lille", "Chelsea", "Real Madrid"]
+            },
+            {
+                name: "David Ginola",
+                nation: "France",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50523620.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=71d8c47eaf244f586643e43eb98019fe",
+                clubs: ["Toulon", "Matra Racing", "Brest", "PSG", "Newcastle", "Tottenham", "Aston Villa", "Everton"]
+            },
+            {
+                name: "Xavi",
+                nation: "Espagne",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/10535.png?fm=png&ixlib=java-2.1.0&verzion=3&w=512&s=5eefe73772a9fdb9921a608d7b43866e",
+                clubs: ["Barcelone", "Al-Sadd"]
+            },
+            {
+                name: "Lilian Thuram",
+                nation: "France",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50333263.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=3a44f2d3df42c3b2fe46eeeae01b3b0a",
+                clubs: ["Monaco", "Parme", "Juventus", "Barcelone"]
+            },
+            {
+                name: "Wesley Sneijder",
+                nation: "Pays-Bas",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50606398.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=ac8bea3e75ab93780c03e3fb39294bb3",
+                clubs: ["Ajax", "Real Madrid", "Inter Milan", "Galatasaray", "Nice", "Al-Gharafa"]
+            },
+            {
+                name: "Johan Cruyff",
+                nation: "Pays-Bas",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50521693.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=9892f95261e44a9b4c288c5ee91a91c5",
+                clubs: ["Ajax", "Barcelone", "LA Aztecs", "Washington Diplomats", "Levante", "Ajax", "Feyenoord"]
+            },
+            {
+                name: "Andrea Pirlo",
+                nation: "Italie",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50339411.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=a0785c09e2deb28fdd4b36e663548a0d",
+                clubs: ["Brescia", "Inter Milan", "Reggina", "AC Milan", "Juventus", "New York City FC"]
+            },
+            {
+                name: "Claudio Marchisio",
+                nation: "Italie",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/173210.png?fm=png&ixlib=java-2.1.0&verzion=2&w=512&s=622874e0873a6b51ba25faa434ce770d",
+                clubs: ["Juventus", "Empoli", "Zenit Saint-Pétersbourg"]
+            },
+            {
+                name: "Rio Ferdinand",
+                nation: "Angleterre",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50338937.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=e0310b6bd103b914d7ca8728cb377d11",
+                clubs: ["West Ham", "Bournemouth", "Leeds United", "Man United", "QPR"]
+            },
+            {
+                name: "Rafaël Leão",
+                nation: "Portugal",
+                pos: "ATT",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67350585.png?fm=png&ixlib=java-2.1.0&verzion=2&w=485&s=4c9391a3959f89d41858194ae0f80e2a",
+                clubs: ["Sporting CP", "Lille", "AC Milan"]
+            },
+            {
+                name: "Phil Foden",
+                nation: "Angleterre",
+                pos: "MIL",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p67346556.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=b07b693bab5be1a4a9aa4f995b911ccc",
+                clubs: ["Man City"]
+            },
+            {
+                name: "Keylor Navas",
+                nation: "Costa Rica",
+                pos: "G",
+                photo: "https://cdn3.futbin.com/content/fifa22/img/players/193041.png?fm=png&ixlib=java-2.1.0&w=244&s=d2ae31e31617bd3cce8d55313f689563",
+                clubs: ["Levante", "Real Madrid", "PSG"]
+            },
+            {
+                name: "Sergio Ramos",
+                nation: "Espagne",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa24/img/players/p100819158.png?fm=png&ixlib=java-2.1.0&w=448&s=5ff6b7d6bc2a1817f53a42008e31813f",
+                clubs: ["Seville", "Real Madrid", "PSG"]
+            },
+            {
+                name: "Thiago Silva",
+                nation: "Brésil",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa24/img/players/p67273104.png?fm=png&ixlib=java-2.1.0&w=485&s=5644c3d48c9eb33e6374388649308494",
+                clubs: ["AC Milan", "PSG", "Chelsea", "Flamengo"]
+            },
+            {
+                name: "João Cancelo",
+                nation: "Portugal",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50542162.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=4737a0460e490b6ef793f9afba8449de",
+                clubs: ["Benfica", "Valence", "Inter Milan", "Juventus", "Man City", "Bayern Munich", "Barcelone", "Al-Hilal"]
+            },
+            {
+                name: "Ashley Cole",
+                nation: "Angleterre",
+                pos: "DEF",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50365727.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=7ca542a53efee9291a71b0f72fa0beb0",
+                clubs: ["Arsenal", "Chelsea", "AS Rome", "LA Galaxy", "Derby County"]
+            },
+            {
+                name: "Gianluigi Buffon",
+                nation: "Italie",
+                pos: "G",
+                photo: "https://cdn3.futbin.com/content/fifa26/img/players/p50332827.png?fm=png&ixlib=java-2.1.0&verzion=1&w=485&s=59772a72c4eac382d99cf172d87db2b2",
+                clubs: ["Parme", "Juventus", "PSG", "Juventus", "Parme"]
+            },
+            {
+                name: "David Luiz",
+                nation: "Brésil",
+                pos: "DEF",
+                photo: "https://th.bing.com/th/id/OIP.rHV177hAnkk59pDjMT-JowHaFA?w=184&h=180&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+                clubs: ["Benfica", "Chelsea", "PSG", "Chelsea", "Arsenal", "Flamengo"]
+            },
+            {
+                name: "Maxwell",
+                nation: "Brésil",
+                pos: "DEF",
+                photo: "https://th.bing.com/th/id/OIP.DpZo7-IKR1KI28Mnn7HCGwAAAA?w=129&h=180&c=7&r=0&o=7&cb=defcache2&dpr=1.3&pid=1.7&rm=3&defcache=1",
+                clubs: ["Cruzeiro", "Ajax", "Inter Milan", "Barcelone", "PSG"]
+            }
+        ];
+
+// ==========================================
+// AUTH & SESSION
+// ==========================================
+const ACCT_PREFIX = 'ff_acct:';
+const SESSION_KEY = 'ff_session';
+
+function getSessionUser()   { return localStorage.getItem(SESSION_KEY) || null; }
+function setSession(p)      { localStorage.setItem(SESSION_KEY, p.toLowerCase()); }
+function clearSession()     { localStorage.removeItem(SESSION_KEY); }
+function simpleHash(str)    { let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h)^str.charCodeAt(i); return(h>>>0).toString(36); }
+function acctKey(p)         { return ACCT_PREFIX+p.toLowerCase().replace(/\s+/g,'_'); }
+
+async function getAccount(p) {
+    const lsKey = acctKey(p);
+    // D'abord chercher dans localStorage (données locales)
+    try {
+        const local = localStorage.getItem(lsKey);
+        if(local) return JSON.parse(local);
+    } catch(e){}
+    // Sinon chercher dans le storage partagé (comptes créés sur d'autres sessions)
+    try { 
+        const r=await window.storage.get(lsKey, true); 
+        if(r?.value) {
+            // Mettre en cache local
+            try { localStorage.setItem(lsKey, r.value); } catch(e){}
+            return JSON.parse(r.value);
+        }
+    } catch(e){}
+    return null;
+}
+async function saveAccount(a) {
+    const lsKey = acctKey(a.pseudo);
+    const data = JSON.stringify(a);
+    // Sauvegarder en local (toujours accessible)
+    try { localStorage.setItem(lsKey, data); } catch(e){}
+    // Sauvegarder aussi en shared pour le leaderboard
+    try { await window.storage.set(lsKey, data, true); } catch(e){console.warn('saveAccount shared error',e);}
+}
+
+let currentUser = null;
+
+async function loadCurrentUser() {
+    const p = getSessionUser(); if(!p) return null;
+    const a = await getAccount(p); if(!a){clearSession();return null;}
+    currentUser = a; return a;
+}
+
+async function updateUser(patch, sync=false) {
+    if(!currentUser) return;
+    Object.assign(currentUser, patch);
+    await saveAccount(currentUser);
+    refreshUI();
+    if(sync) await syncLeaderboard();
+}
+
+function refreshUI() {
+    if(!currentUser) return;
+    const c=currentUser;
+    document.getElementById('hud-coins').textContent     = c.coins||0;
+    document.getElementById('hud-streak').textContent    = c.streak||0;
+    document.getElementById('menu-coins').textContent    = c.coins||0;
+    document.getElementById('menu-best-streak').textContent = c.bestStreak||0;
+    document.getElementById('menu-wins').textContent     = c.wins||0;
+    document.getElementById('game-streak').textContent   = c.streak||0;
+    document.getElementById('user-name-display').textContent = c.pseudo;
+    document.getElementById('user-avatar').textContent   = c.pseudo[0].toUpperCase();
+    // Daily button
+    const allDone = allModesLockedToday();
+    const btnD = document.getElementById('btn-daily');
+    btnD.className='btn-main btn-daily'+(allDone?' done':'');
+    btnD.textContent = allDone ? '✅ Défi du jour fait !' : '🌟 DÉFI DU JOUR';
+}
+
+// AUTH
+let authMode = 'login';
+function switchAuthTab(mode) {
+    authMode = mode;
+    document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(mode==='login'&&i===0)||(mode==='signup'&&i===1)));
+    document.getElementById('pseudo-label').textContent = mode==='signup'?'Nom d\'utilisateur (public)':'Nom d\'utilisateur';
+    document.getElementById('btn-auth-submit').textContent = mode==='login'?'Se connecter':'Créer mon compte';
+    document.getElementById('auth-switch-text').innerHTML = mode==='login'
+        ?'Pas encore de compte ? <a href="#" onclick="switchAuthTab(\'signup\');return false;" style="color:var(--primary);font-weight:700;text-decoration:none;">Créer un compte</a>'
+        :'Déjà un compte ? <a href="#" onclick="switchAuthTab(\'login\');return false;" style="color:var(--primary);font-weight:700;text-decoration:none;">Se connecter</a>';
+    hideAuthMsg();
+}
+function togglePwd() { const i=document.getElementById('inp-pwd'); i.type=i.type==='password'?'text':'password'; }
+function showAuthError(m)   { const e=document.getElementById('auth-error'); e.textContent=m; e.style.display='block'; document.getElementById('auth-success').style.display='none'; }
+function showAuthSuccess(m) { const e=document.getElementById('auth-success'); e.textContent=m; e.style.display='block'; document.getElementById('auth-error').style.display='none'; }
+function hideAuthMsg()      { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
+
+async function submitAuth() {
+    const pseudo=document.getElementById('inp-pseudo').value.trim();
+    const pwd=document.getElementById('inp-pwd').value;
+    const btn=document.getElementById('btn-auth-submit');
+    hideAuthMsg();
+    if(!pseudo){showAuthError('Entre ton nom d\'utilisateur.');return;}
+    if(pseudo.length<2){showAuthError('Pseudo trop court (min 2 caractères).');return;}
+    if(!pwd){showAuthError('Entre ton mot de passe.');return;}
+    if(pwd.length<4){showAuthError('Mot de passe trop court (min 4 caractères).');return;}
+    btn.disabled=true; btn.textContent='⏳ Chargement...';
+    if(authMode==='signup') {
+        const existing=await getAccount(pseudo);
+        if(existing){showAuthError('Ce pseudo est déjà utilisé. Choisis-en un autre.');btn.disabled=false;btn.textContent='Créer mon compte';return;}
+        const newAccount={pseudo,pwdHash:simpleHash(pwd),coins:0,streak:0,bestStreak:0,wins:0,dailyDone:'',survivalBest:0,
+            dailyDoneModes:{},
+            createdAt:Date.now()};
+        await saveAccount(newAccount); setSession(pseudo); currentUser=newAccount;
+        showAuthSuccess('Compte créé ! Bienvenue '+pseudo+' 🎉'); setTimeout(enterMenu,700);
+    } else {
+        const acc=await getAccount(pseudo);
+        if(!acc){showAuthError('Aucun compte trouvé avec ce pseudo.');btn.disabled=false;btn.textContent='Se connecter';return;}
+        if(acc.pwdHash!==simpleHash(pwd)){showAuthError('Mot de passe incorrect.');btn.disabled=false;btn.textContent='Se connecter';return;}
+        setSession(pseudo); currentUser=acc;
+        showAuthSuccess('Connexion réussie ! Bonjour '+acc.pseudo+' 👋'); setTimeout(enterMenu,500);
+    }
+}
+
+function logout() {
+    clearSession(); currentUser=null;
+    document.getElementById('inp-pseudo').value=''; document.getElementById('inp-pwd').value='';
+    hideAuthMsg(); switchAuthTab('login'); showScreen('auth-screen');
+    document.getElementById('coin-hud').style.display='none';
+    document.getElementById('streak-hud').style.display='none';
+}
+
+// NAVIGATION
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function enterMenu() { refreshUI(); showScreen('menu-screen'); syncLeaderboard(); }
+function goHome() {
+    clearInterval(svTimer);
+    closeAllAC();
+    showScreen('menu-screen');
+    document.getElementById('coin-hud').style.display='none';
+    document.getElementById('streak-hud').style.display='none';
+    syncLeaderboard();
+}
+
+// ==========================================
+// LOCK PAR JOUR (1 fois par jour par mode)
+// ==========================================
+function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
+
+// Seul le défi du jour est verrouillé (1 fois/jour par mode quotidien)
+function isModeLocked(mode) { return false; } // modes libres
+async function lockMode(mode) {} // no-op pour les modes libres
+
+function isDailyModeDone(mode) {
+    if(!currentUser) return false;
+    return (currentUser.dailyDoneModes||{})[mode] === getTodayKey();
+}
+
+async function markDailyModeDone(mode) {
+    const obj = currentUser.dailyDoneModes || {};
+    obj[mode] = getTodayKey();
+    await updateUser({dailyDoneModes: obj});
+}
+
+function allModesLockedToday() {
+    // Le bouton défi du jour est "fait" seulement si le mode du jour est complété
+    return isDailyModeDone(getDailyMode());
+}
+
+// ==========================================
+// DÉFI DU JOUR
+// ==========================================
+function seededRandom(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h)^s.charCodeAt(i);return(h>>>0)/4294967296;}
+
+const DAILY_MODES = ['classique','inverse','historique','survival','escalade','parcours'];
+
+function getDailyMode() {
+    const idx = Math.floor(seededRandom(getTodayKey()) * DAILY_MODES.length);
+    return DAILY_MODES[idx];
+}
+
+function getDailyPlayer(){if(!database.length)return null;return database[Math.floor(seededRandom(getTodayKey()+'_p')*database.length)];}
+
+function openDailyModal() {
+    const today = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+    document.getElementById('daily-modal-date').textContent = today;
+    const dailyMode = getDailyMode();
+    const modeLabels = {
+        classique:  {icon:'▶', name:'Mode Classique', desc:'Devine le joueur à partir de ses clubs'},
+        inverse:    {icon:'🔄', name:'Mode Inverse', desc:'Trouve tous les clubs du joueur donné'},
+        historique: {icon:'📋', name:'Historique des Clubs', desc:'Retrouve tous les clubs d\'un joueur'},
+        survival:   {icon:'❤️', name:'Mode Survie', desc:'Chrono + 3 vies, combien tiendras-tu ?'},
+        escalade:   {icon:'📈', name:'Mode Escalade', desc:'Niveaux de plus en plus difficiles'},
+        parcours:   {icon:'🔀', name:'Qui a ce parcours ?', desc:'QCM sur les parcours de joueurs'},
+    };
+    const btnContainer = document.getElementById('daily-modal-buttons');
+    btnContainer.innerHTML = '';
+    const info = modeLabels[dailyMode];
+    const done = isDailyModeDone(dailyMode);
+    const btn = document.createElement('button');
+    btn.className = 'daily-mode-btn' + (done?' done-mode':'');
+    btn.style.borderColor = done ? 'var(--primary)' : '#f9ca24';
+    btn.innerHTML = `<span class="dmicon">${info.icon}</span>
+        <div class="dminfo">
+            <div class="dmname">${info.name} ${done?'✅':''}</div>
+            <div class="dmdesc">${done?'Déjà complété aujourd\'hui !':info.desc}</div>
+        </div>
+        <span style="color:var(--coin);font-weight:800;font-size:0.9rem;">+3 🪙</span>`;
+    if(!done) btn.onclick = ()=>{ closeDailyModal(); launchDailyMode(dailyMode); };
+    btnContainer.appendChild(btn);
+    document.getElementById('daily-modal').classList.add('open');
+}
+
+function closeDailyModal() { document.getElementById('daily-modal').classList.remove('open'); }
+
+function launchDailyMode(mode) {
+    switch(mode) {
+        case 'classique':  startGame(true); break;
+        case 'inverse':    startInverse(true); break;
+        case 'historique': startHistorique(true); break;
+        case 'survival':   startSurvival(true); break;
+        case 'escalade':   startEscalade(true); break;
+        case 'parcours':   startParcours(true); break;
+    }
+}
+
+// ==========================================
+// AUTOCOMPLETE JOUEURS
+// ==========================================
+let acSelectedIdx = {};
+
+function handleAC(inputId, listId, playerMode) {
+    const inp = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    const val = norm(inp.value);
+    if(val.length < 2) { list.style.display='none'; return; }
+    const matches = database.filter(p => norm(p.name).includes(val)).slice(0,7);
+    if(!matches.length) { list.style.display='none'; return; }
+    list.innerHTML = matches.map((p,i)=>`
+        <div class="autocomplete-item" data-name="${p.name}" data-idx="${i}" onmousedown="selectAC(event,'${inputId}','${listId}')">
+            <img src="${p.photo}" alt="">
+            <span>${p.name}</span>
+            <span class="sub">${p.nation} • ${p.pos}</span>
+        </div>`).join('');
+    list.style.display='block';
+    acSelectedIdx[listId] = -1;
+    // keyboard nav
+    inp.onkeydown = (e) => {
+        const items = list.querySelectorAll('.autocomplete-item');
+        if(e.key==='ArrowDown'){e.preventDefault();acSelectedIdx[listId]=Math.min((acSelectedIdx[listId]||0)+1,items.length-1);items.forEach((it,i)=>it.classList.toggle('selected',i===acSelectedIdx[listId]));}
+        else if(e.key==='ArrowUp'){e.preventDefault();acSelectedIdx[listId]=Math.max((acSelectedIdx[listId]||0)-1,0);items.forEach((it,i)=>it.classList.toggle('selected',i===acSelectedIdx[listId]));}
+        else if(e.key==='Tab'||e.key==='Enter'){
+            const sel=list.querySelector('.selected')||list.querySelector('.autocomplete-item');
+            if(sel&&e.key==='Tab'){e.preventDefault();inp.value=sel.dataset.name;list.style.display='none';}
+        }
+    };
+}
+
+function selectAC(e, inputId, listId) {
+    e.preventDefault();
+    const name = e.currentTarget.dataset.name;
+    document.getElementById(inputId).value = name;
+    document.getElementById(listId).style.display = 'none';
+}
+
+// Club autocomplete
+function handleClubAC(inputId, listId) {
+    const inp = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    const val = norm(inp.value);
+    if(val.length < 2) { list.style.display='none'; return; }
+    const clubNames = Object.keys(clubsDB);
+    const matches = clubNames.filter(c => norm(c).includes(val)).slice(0,7);
+    if(!matches.length) { list.style.display='none'; return; }
+    list.innerHTML = matches.map((c,i)=>`
+        <div class="autocomplete-item-club" data-name="${c}" data-idx="${i}" onmousedown="selectClubAC(event,'${inputId}','${listId}')">
+            <img src="${clubsDB[c]||''}" alt="">
+            <span>${c}</span>
+        </div>`).join('');
+    list.style.display='block';
+    inp.onkeydown = (e) => {
+        const items = list.querySelectorAll('.autocomplete-item-club');
+        if(e.key==='ArrowDown'){e.preventDefault();let idx=parseInt(list.dataset.idx||'-1')+1;idx=Math.min(idx,items.length-1);list.dataset.idx=idx;items.forEach((it,i)=>it.classList.toggle('selected',i===idx));}
+        else if(e.key==='ArrowUp'){e.preventDefault();let idx=parseInt(list.dataset.idx||'0')-1;idx=Math.max(idx,0);list.dataset.idx=idx;items.forEach((it,i)=>it.classList.toggle('selected',i===idx));}
+        else if(e.key==='Tab'){const sel=list.querySelector('.selected')||list.querySelector('.autocomplete-item-club');if(sel){e.preventDefault();inp.value=sel.dataset.name;list.style.display='none';}}
+    };
+}
+
+function selectClubAC(e, inputId, listId) {
+    e.preventDefault();
+    document.getElementById(inputId).value = e.currentTarget.dataset.name;
+    document.getElementById(listId).style.display = 'none';
+}
+
+function closeAllAC() {
+    document.querySelectorAll('.autocomplete-list').forEach(l=>l.style.display='none');
+}
+document.addEventListener('click', e => { if(!e.target.closest('.autocomplete-wrap')&&!e.target.closest('.histo-input-wrap')&&!e.target.closest('.inverse-input-row')&&!e.target.closest('[style*="position:relative"]')) closeAllAC(); });
+
+// ==========================================
+// LEADERBOARD
+// ==========================================
+let lbTab = 'coins';
+async function syncLeaderboard() {
+    if(!currentUser) return;
+    const data={pseudo:currentUser.pseudo,coins:currentUser.coins||0,streak:currentUser.bestStreak||0,wins:currentUser.wins||0,survivalBest:currentUser.survivalBest||0,ts:Date.now()};
+    try { await window.storage.set('lb:'+currentUser.pseudo.toLowerCase(),JSON.stringify(data),true); } catch(e){}
+}
+
+async function loadLeaderboard(tab) {
+    lbTab=tab;
+    const body=document.getElementById('lb-body');
+    const mine=document.getElementById('lb-mine');
+    body.innerHTML='<div class="lb-empty">⏳ Chargement...</div>'; mine.style.display='none';
+    try {
+        const res=await window.storage.list('lb:',true);
+        const keys=res?.keys||[];
+        if(keys.length===0){body.innerHTML='<div class="lb-empty">Aucun joueur pour l\'instant. Sois le premier ! 🚀</div>';return;}
+        const players=[];
+        for(const k of keys){try{const r=await window.storage.get(k,true);if(r?.value)players.push(JSON.parse(r.value));}catch(e){}}
+        if(!players.length){body.innerHTML='<div class="lb-empty">Aucune donnée.</div>';return;}
+        const sortKey=tab==='streak'?'streak':tab==='wins'?'wins':tab==='survivalBest'?'survivalBest':'coins';
+        players.sort((a,b)=>(b[sortKey]||0)-(a[sortKey]||0));
+        const medals=['🥇','🥈','🥉'],rankCls=['gold','silver','bronze'];
+        body.innerHTML='';
+        players.slice(0,20).forEach((p,i)=>{
+            const isMe=currentUser&&p.pseudo.toLowerCase()===currentUser.pseudo.toLowerCase();
+            const rank=i<3?`<span class="lb-rank ${rankCls[i]}">${medals[i]}</span>`:`<span class="lb-rank" style="color:var(--text-dim)">#${i+1}</span>`;
+            const val=tab==='streak'?`<span class="lb-val s">🔥 ${p.streak||0}</span>`
+                     :tab==='wins'?`<span class="lb-val w">✅ ${p.wins||0}</span>`
+                     :tab==='survivalBest'?`<span class="lb-val" style="color:var(--survival)">❤️ ${p.survivalBest||0}</span>`
+                     :`<span class="lb-val c">🪙 ${p.coins||0}</span>`;
+            body.innerHTML+=`<div class="lb-row ${isMe?'me':''}">
+                ${rank}<span class="lb-name">${esc(p.pseudo)}${isMe?' <span style="color:var(--text-dim);font-size:0.72rem">(toi)</span>':''}</span>${val}</div>`;
+        });
+        if(currentUser){
+            const myIdx=players.findIndex(p=>p.pseudo.toLowerCase()===currentUser.pseudo.toLowerCase());
+            if(myIdx>=20){mine.innerHTML=`Ta position : <strong>#${myIdx+1}</strong>`;mine.style.display='block';}
+        }
+    } catch(e){body.innerHTML='<div class="lb-empty">Classement disponible en mode en ligne.</div>';}
+}
+
+function switchLbTab(tab,btn) { document.querySelectorAll('.lb-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); loadLeaderboard(tab); }
+function openLeaderboard()  { document.getElementById('lb-modal').classList.add('open'); loadLeaderboard(lbTab); }
+function closeLeaderboard() { document.getElementById('lb-modal').classList.remove('open'); }
+function openRules()        { document.getElementById('rules-modal').classList.add('open'); }
+function closeRules()       { document.getElementById('rules-modal').classList.remove('open'); }
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// COINS
+async function spendCoins(amount) {
+    if((currentUser?.coins||0)<amount) return false;
+    await updateUser({coins:(currentUser.coins||0)-amount}); return true;
+}
+function animCoin(amount,sourceEl) {
+    if(!sourceEl) return;
+    const r=sourceEl.getBoundingClientRect();
+    const el=document.createElement('div'); el.className='coin-float'; el.textContent=`+${amount} 🪙`;
+    el.style.cssText=`left:${r.left+r.width/2-35}px;top:${r.top}px`; document.body.appendChild(el);
+    setTimeout(()=>el.remove(),950);
+}
+
+// ==========================================
+// JEU CLASSIQUE
+// ==========================================
+let isDailyMode=false,currentP=null,revealedCount=1,hintNationUsed=false,hintPosUsed=false;
+
+function startGame(daily) {
+    isDailyMode=daily;
+    showScreen('game-screen');
+    document.getElementById('coin-hud').style.display='flex';
+    document.getElementById('streak-hud').style.display='flex';
+    document.getElementById('mode-pill').textContent=daily?'🌟 Défi du Jour':'🎮 Mode Classique';
+    document.getElementById('mode-pill').className='pill'+(daily?' daily':'');
+    nextQuestion();
+}
+
+function nextQuestion() {
+    currentP = isDailyMode ? getDailyPlayer() : database[Math.floor(Math.random()*database.length)];
+    if(!currentP) return;
+    revealedCount=1; hintNationUsed=false; hintPosUsed=false;
+    document.getElementById('p-photo').style.filter='blur(55px) brightness(0.8)';
+    document.getElementById('p-photo').src=currentP.photo;
+    document.getElementById('revealed-name').style.opacity='0';
+    document.getElementById('revealed-name').innerText='';
+    document.getElementById('input-zone').classList.remove('hidden');
+    document.getElementById('restart-btn').classList.add('hidden');
+    document.getElementById('hint-area').innerHTML='';
+    document.getElementById('guessInput').value='';
+    document.getElementById('ac-classic').style.display='none';
+    document.getElementById('daily-banner-zone').innerHTML=isDailyMode?`<div class="daily-banner">🌟 Défi du Jour — ${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>`:'';
+    const bn=document.getElementById('btn-nation'),bp=document.getElementById('btn-pos');
+    bn.disabled=false;bn.classList.remove('used');bn.querySelector('.hcost').textContent='🪙 5 coins';
+    bp.disabled=false;bp.classList.remove('used');bp.querySelector('.hcost').textContent='🪙 5 coins';
+    const old=document.getElementById('daily-back-btn'); if(old)old.remove();
+    updateClubs();
+}
+
+function updateClubs() {
+    const c=document.getElementById('p-clubs'); c.innerHTML='';
+    for(let i=0;i<revealedCount;i++){
+        const logo=clubsDB[currentP.clubs[i]]||'';
+        c.innerHTML+=`<div class="club-badge"><img src="${logo}" title="${currentP.clubs[i]}"></div>`;
+    }
+    const rem=currentP.clubs.length-revealedCount;
+    document.getElementById('remaining-count').innerText=rem>0?`Il reste ${rem} club${rem>1?'s':''}`:'Dernière chance !';
+}
+
+async function buyHint(type,btn) {
+    if((currentUser?.coins||0)<5){showToast('❌ Pas assez de coins ! (5 🪙 nécessaires)');btn.classList.add('shake');setTimeout(()=>btn.classList.remove('shake'),500);return;}
+    if(type==='nation'&&!hintNationUsed){
+        await spendCoins(5);hintNationUsed=true;btn.disabled=true;btn.classList.add('used');btn.querySelector('.hcost').textContent='✅ Révélé';
+        const flag=flagsDB[currentP.nation]?`<img src="${flagsDB[currentP.nation]}">`:'' ;
+        const box=document.createElement('div');box.className='hint-reveal';box.innerHTML=`${flag} <strong>${currentP.nation}</strong>`;
+        document.getElementById('hint-area').appendChild(box);
+    }
+    if(type==='pos'&&!hintPosUsed){
+        await spendCoins(5);hintPosUsed=true;btn.disabled=true;btn.classList.add('used');btn.querySelector('.hcost').textContent='✅ Révélé';
+        const cols={G:'#eb4d4b',GDA:'#eb4d4b',DEF:'#3498db',MIL:'#f1c40f',ATT:'#badc58'};
+        const box=document.createElement('div');box.className='hint-reveal';
+        box.innerHTML=`Poste : <span class="pos-pill" style="background:${cols[currentP.pos]||'#fff'};color:#000">${currentP.pos}</span>`;
+        document.getElementById('hint-area').appendChild(box);
+    }
+}
+
+function checkAnswer() {
+    const val=document.getElementById('guessInput').value.trim();
+    document.getElementById('ac-classic').style.display='none';
+    if(val.length<2)return;
+    if(isSimilar(val,currentP.name)){revealedCount=currentP.clubs.length;updateClubs();endRound(true);}
+    else {
+        if(revealedCount<currentP.clubs.length){revealedCount++;updateClubs();document.getElementById('guessInput').value='';const inp=document.getElementById('guessInput');inp.classList.add('shake');setTimeout(()=>inp.classList.remove('shake'),500);}
+        else endRound(false);
+    }
+}
+function handleKeyPress(e){if(e.key==='Enter')checkAnswer();}
+
+async function endRound(win) {
+    document.getElementById('p-photo').style.filter='blur(0) brightness(1)';
+    document.getElementById('revealed-name').innerText=currentP.name;
+    document.getElementById('revealed-name').style.opacity='1';
+    document.getElementById('input-zone').classList.add('hidden');
+    document.getElementById('btn-nation').disabled=true;document.getElementById('btn-pos').disabled=true;
+    if(isDailyMode){
+        await markDailyModeDone(getDailyMode());
+        document.getElementById('restart-btn').classList.add('hidden');
+        const backBtn=document.createElement('button');backBtn.id='daily-back-btn';backBtn.className='btn-main btn-play';
+        backBtn.style.cssText='margin:18px auto 0;';backBtn.textContent='← Retour au menu';backBtn.onclick=goHome;
+        document.getElementById('restart-btn').parentNode.appendChild(backBtn);
+    } else {
+        // Mode libre : bouton "Suivant" pour continuer à jouer
+        const oldBack=document.getElementById('daily-back-btn'); if(oldBack)oldBack.remove();
+        document.getElementById('restart-btn').classList.remove('hidden');
+        document.getElementById('restart-btn').textContent='Suivant ▶';
+    }
+    if(win){
+        document.getElementById('remaining-count').innerText='🎉 EXCELLENT !';
+        const newStreak=(currentUser.streak||0)+1,newBest=Math.max(newStreak,currentUser.bestStreak||0),newWins=(currentUser.wins||0)+1,bonus=isDailyMode?3:1;
+        let streakBonus=0,streakMsg='';
+        if(newStreak===3){streakBonus=2;streakMsg='🔥 Série x3 ! +2 coins !';}
+        else if(newStreak===5){streakBonus=3;streakMsg='🔥🔥 Série x5 ! +3 coins !';}
+        else if(newStreak===10){streakBonus=10;streakMsg='🔥🔥🔥 SÉRIE x10 ! +10 coins !!';}
+        else if(newStreak>10&&newStreak%5===0){streakBonus=5;streakMsg=`🏆 Série x${newStreak} ! +5 coins !`;}
+        const newCoins=(currentUser.coins||0)+bonus+streakBonus;
+        await updateUser({streak:newStreak,bestStreak:newBest,wins:newWins,coins:newCoins},true);
+        animCoin(bonus+streakBonus,document.getElementById('revealed-name'));
+        const ch=document.getElementById('coin-hud');ch.classList.remove('bounce');void ch.offsetWidth;ch.classList.add('bounce');
+        const sh=document.getElementById('streak-hud');sh.classList.remove('pulse');void sh.offsetWidth;sh.classList.add('pulse');
+        showToast(isDailyMode?'🌟 Défi du jour réussi ! +3 🪙':`🪙 +${bonus+streakBonus} coin${(bonus+streakBonus)>1?'s':''}!`);
+        if(streakMsg)setTimeout(()=>showToast(streakMsg),1000);
+    } else {
+        document.getElementById('remaining-count').innerText='❌ C\'ÉTAIT : '+currentP.name.toUpperCase();
+        const oldS=currentUser.streak||0;if(oldS>=3)showToast(`💔 Série de ${oldS} perdue !`);
+        await updateUser({streak:0},true);
+    }
+}
+
+// ==========================================
+// MODE SURVIE
+// ==========================================
+let svLives=3,svScore=0,svCurrentP=null,svRevealed=1,svTimer=null,svTimerPct=100,svAnswered=false,svIsDaily=false;
+const SV_TIME=20;
+
+function startSurvival(daily=false) {
+    svLives=3;svScore=0;svAnswered=false;svIsDaily=daily;
+    showScreen('survival-screen');
+    document.getElementById('coin-hud').style.display='flex';
+    document.getElementById('streak-hud').style.display='flex';
+    document.getElementById('survival-result').style.display='none';
+    document.getElementById('survival-game-zone').style.display='block';
+    svNextQuestion();
+}
+
+function svUpdateLives() {
+    const el=document.getElementById('lives-display'); el.innerHTML='';
+    for(let i=0;i<3;i++) el.innerHTML+=`<span style="font-size:1.4rem;opacity:${i<svLives?1:0.2}">❤️</span>`;
+}
+
+function svNextQuestion() {
+    svAnswered=false;
+    svCurrentP=database[Math.floor(Math.random()*database.length)];
+    svRevealed=1;
+    clearInterval(svTimer);
+    svTimerPct=100;
+    document.getElementById('sv-photo').style.filter='blur(55px) brightness(0.8)';
+    document.getElementById('sv-photo').src=svCurrentP.photo;
+    document.getElementById('sv-revealed-name').style.opacity='0';document.getElementById('sv-revealed-name').innerText='';
+    document.getElementById('sv-input').value='';
+    document.getElementById('ac-survival').style.display='none';
+    svUpdateClubs();svUpdateLives();
+    document.getElementById('survival-score').textContent=svScore;
+    svTimer=setInterval(()=>{
+        if(svAnswered) return;
+        svTimerPct-=(100/(SV_TIME*10));
+        if(svTimerPct<=0){svTimerPct=0;clearInterval(svTimer);svTimeUp();}
+        const bar=document.getElementById('timer-bar');
+        bar.style.width=svTimerPct+'%';
+        bar.className='timer-bar'+(svTimerPct<30?' danger':svTimerPct<60?' warning':'');
+    },100);
+}
+
+function svUpdateClubs(){
+    const c=document.getElementById('sv-clubs');c.innerHTML='';
+    for(let i=0;i<svRevealed;i++){const logo=clubsDB[svCurrentP.clubs[i]]||'';c.innerHTML+=`<div class="club-badge"><img src="${logo}" title="${svCurrentP.clubs[i]}"></div>`;}
+    document.getElementById('sv-remaining').innerText=svRevealed<svCurrentP.clubs.length?`Il reste ${svCurrentP.clubs.length-svRevealed} club(s)`:'Dernière chance !';
+}
+
+function svCheckAnswer(){
+    if(svAnswered)return;
+    const val=document.getElementById('sv-input').value.trim();
+    document.getElementById('ac-survival').style.display='none';
+    if(val.length<2)return;
+    if(isSimilar(val,svCurrentP.name)){svCorrect();}
+    else{if(svRevealed<svCurrentP.clubs.length){svRevealed++;svUpdateClubs();document.getElementById('sv-input').value='';}else svWrong();}
+}
+
+function svCorrect(){
+    svAnswered=true;clearInterval(svTimer);svScore++;
+    document.getElementById('sv-photo').style.filter='blur(0) brightness(1)';
+    document.getElementById('sv-revealed-name').innerText=svCurrentP.name;
+    document.getElementById('sv-revealed-name').style.opacity='1';
+    document.getElementById('sv-remaining').innerText='🎉 CORRECT !';
+    document.getElementById('survival-score').textContent=svScore;
+    showToast('✅ Bonne réponse !');
+    setTimeout(svNextQuestion,1200);
+}
+
+function svWrong(){
+    svAnswered=true;clearInterval(svTimer);svLives--;
+    document.getElementById('sv-photo').style.filter='blur(0) brightness(1)';
+    document.getElementById('sv-revealed-name').innerText=svCurrentP.name;
+    document.getElementById('sv-revealed-name').style.opacity='1';
+    document.getElementById('sv-remaining').innerText='❌ C\'était : '+svCurrentP.name;
+    svUpdateLives();showToast(`❌ Mauvaise réponse ! ${svLives} vie(s) restante(s)`);
+    if(svLives<=0){setTimeout(svGameOver,1200);}else{setTimeout(svNextQuestion,1500);}
+}
+
+function svTimeUp(){
+    if(svAnswered)return;svAnswered=true;svLives--;
+    document.getElementById('sv-photo').style.filter='blur(0) brightness(1)';
+    document.getElementById('sv-revealed-name').innerText=svCurrentP.name;
+    document.getElementById('sv-revealed-name').style.opacity='1';
+    document.getElementById('sv-remaining').innerText='⏰ Temps écoulé !';
+    svUpdateLives();showToast('⏰ Trop lent ! -1 vie');
+    if(svLives<=0){setTimeout(svGameOver,1200);}else{setTimeout(svNextQuestion,1500);}
+}
+
+async function svGameOver(){
+    clearInterval(svTimer);
+    if(svIsDaily) await markDailyModeDone('survival');
+    document.getElementById('survival-game-zone').style.display='none';
+    document.getElementById('survival-result').style.display='block';
+    document.getElementById('sv-final-score').textContent=svScore;
+    const newBest=Math.max(svScore,currentUser.survivalBest||0);
+    document.getElementById('sv-best-score').textContent=newBest;
+    const coinsEarned=svScore+(svIsDaily?3:0);
+    await updateUser({survivalBest:newBest,coins:(currentUser.coins||0)+coinsEarned},true);
+    showToast(`💀 Game Over ! Score : ${svScore} • +${coinsEarned} 🪙`);
+}
+
+// ==========================================
+// MODE ESCALADE — VERSION FACILE AVEC INDICES
+// ==========================================
+// Niv 1 = 1 club + nation + poste visibles, niv 2 = 2 clubs + nation + poste, etc.
+const ESC_LEVELS = 8;
+let escLevel=1,escCoinsEarned=0,escCurrentP=null,escRevealed=1,escIsDaily=false;
+
+function startEscalade(daily=false) {
+    escLevel=1;escCoinsEarned=0;escIsDaily=daily;
+    showScreen('escalade-screen');
+    document.getElementById('coin-hud').style.display='flex';
+    document.getElementById('streak-hud').style.display='flex';
+    document.getElementById('escalade-result').style.display='none';
+    document.getElementById('escalade-game-zone').style.display='block';
+    escBuildDots();escNextQuestion();
+}
+
+function escBuildDots(){
+    const el=document.getElementById('esc-dots');el.innerHTML='';
+    for(let i=1;i<=ESC_LEVELS;i++){
+        const d=document.createElement('div');d.className='lvl-dot'+(i<escLevel?' done':i===escLevel?' current':'');el.appendChild(d);
+    }
+}
+
+function escNextQuestion(){
+    const eligible=database.filter(p=>p.clubs.length>=1);
+    if(!eligible.length){escFinished();return;}
+    escCurrentP=eligible[Math.floor(Math.random()*eligible.length)];
+    escRevealed=1;
+    document.getElementById('esc-level').textContent=escLevel;
+    document.getElementById('esc-coins').textContent=escCoinsEarned;
+    document.getElementById('esc-photo').style.filter='blur(55px) brightness(0.8)';
+    document.getElementById('esc-photo').src=escCurrentP.photo;
+    document.getElementById('esc-revealed-name').style.opacity='0';document.getElementById('esc-revealed-name').innerText='';
+    document.getElementById('esc-input').value='';
+    document.getElementById('ac-escalade').style.display='none';
+    document.getElementById('esc-next-btn').classList.add('hidden');
+    document.getElementById('esc-banner-zone').innerHTML=`<div class="escalade-banner">📈 Niveau ${escLevel} — ${escLevel} club(s) max + indices offerts</div>`;
+    // Toujours afficher nation + poste (indices gratuits pour faciliter)
+    const cols={G:'#eb4d4b',GDA:'#eb4d4b',DEF:'#3498db',MIL:'#f1c40f',ATT:'#badc58'};
+    const flag=flagsDB[escCurrentP.nation]?`<img src="${flagsDB[escCurrentP.nation]}" style="width:24px;height:16px;border-radius:3px;margin-right:4px;">`:'';
+    document.getElementById('esc-hints-area').innerHTML=`
+        <div class="esc-hint-chip">${flag}${escCurrentP.nation}</div>
+        <div class="esc-hint-chip" style="background:${cols[escCurrentP.pos]||'#fff'}22;border-color:${cols[escCurrentP.pos]||'var(--escalade)'};">${escCurrentP.pos}</div>`;
+    escUpdateClubs();escBuildDots();
+}
+
+function escUpdateClubs(){
+    const c=document.getElementById('esc-clubs');c.innerHTML='';
+    const limit=Math.min(escRevealed,Math.min(escLevel,escCurrentP.clubs.length));
+    for(let i=0;i<limit;i++){const logo=clubsDB[escCurrentP.clubs[i]]||'';c.innerHTML+=`<div class="club-badge"><img src="${logo}" title="${escCurrentP.clubs[i]}"></div>`;}
+    const maxForLevel=Math.min(escLevel,escCurrentP.clubs.length);
+    const rem=maxForLevel-limit;
+    document.getElementById('esc-remaining').innerText=rem>0?`${rem} club(s) de plus disponible(s) à ce niveau`:'Tous les clubs du niveau visibles !';
+}
+
+function escCheckAnswer(){
+    const val=document.getElementById('esc-input').value.trim();
+    document.getElementById('ac-escalade').style.display='none';
+    if(val.length<2)return;
+    if(isSimilar(val,escCurrentP.name)){
+        document.getElementById('esc-photo').style.filter='blur(0) brightness(1)';
+        document.getElementById('esc-revealed-name').innerText=escCurrentP.name;
+        document.getElementById('esc-revealed-name').style.opacity='1';
+        document.getElementById('esc-remaining').innerText='🎉 EXCELLENT !';
+        document.getElementById('esc-next-btn').classList.remove('hidden');
+        const bonus=ESC_LEVELS-escLevel+1;
+        escCoinsEarned+=bonus;document.getElementById('esc-coins').textContent=escCoinsEarned;
+        showToast(`✅ Niveau ${escLevel} réussi ! +${bonus} 🪙`);
+        if(escLevel>=ESC_LEVELS){setTimeout(()=>escFinished(),1200);}
+    } else {
+        const maxShown=Math.min(escLevel,escCurrentP.clubs.length);
+        if(escRevealed<maxShown){
+            escRevealed++;escUpdateClubs();
+            document.getElementById('esc-input').value='';
+            document.getElementById('esc-input').classList.add('shake');setTimeout(()=>document.getElementById('esc-input').classList.remove('shake'),500);
+        } else {
+            document.getElementById('esc-photo').style.filter='blur(0) brightness(1)';
+            document.getElementById('esc-revealed-name').innerText=escCurrentP.name;
+            document.getElementById('esc-revealed-name').style.opacity='1';
+            document.getElementById('esc-remaining').innerText='❌ C\'était : '+escCurrentP.name;
+            showToast('❌ Perdu ! Escalade terminée.');
+            setTimeout(()=>escFinished(true),1500);
+        }
+    }
+}
+
+async function escNextLevelBtn(){
+    escLevel++;document.getElementById('esc-next-btn').classList.add('hidden');
+    if(escLevel>ESC_LEVELS){escFinished();return;}
+    escNextQuestion();
+}
+
+async function escFinished(failed=false){
+    if(escIsDaily) await markDailyModeDone('escalade');
+    document.getElementById('escalade-game-zone').style.display='none';
+    document.getElementById('escalade-result').style.display='block';
+    document.getElementById('esc-final-level').textContent=failed?escLevel:ESC_LEVELS;
+    document.getElementById('esc-final-coins').textContent=escCoinsEarned;
+    const bonus=escIsDaily?3:0;
+    await updateUser({coins:(currentUser.coins||0)+escCoinsEarned+bonus},true);
+    showToast(failed?`💥 Arrêt au niveau ${escLevel} ! +${escCoinsEarned} 🪙`:`🏆 Tous les niveaux terminés ! +${escCoinsEarned+bonus} 🪙`);
+}
+
+// ==========================================
+// MODE PARCOURS — QUI A CE PARCOURS ?
+// ==========================================
+const PARCOURS_TOTAL=10;
+let parcoursQ=0,parcoursScore=0,parcoursCurrentPlayer=null,parcoursChoices=[],parcoursAnswered=false,parcoursDots=[],parcoursIsDaily=false;
+
+function shuffle(arr){let a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function startParcours(daily=false) {
+    parcoursQ=0;parcoursScore=0;parcoursDots=new Array(PARCOURS_TOTAL).fill('pending');parcoursIsDaily=daily;
+    showScreen('parcours-screen');
+    document.getElementById('parcours-total').textContent=PARCOURS_TOTAL;
+    document.getElementById('parcours-result').style.display='none';
+    document.getElementById('parcours-game-zone').style.display='block';
+    document.getElementById('parcours-next-btn').classList.add('hidden');
+    parcoursBuildDots();parcoursNextQuestion();
+}
+
+function parcoursBuildDots(){
+    const el=document.getElementById('parcours-dots');el.innerHTML='';
+    for(let i=0;i<PARCOURS_TOTAL;i++){
+        const d=document.createElement('div');
+        let cls='progress-dot';
+        if(parcoursDots[i]==='ok')cls+=' ok';
+        else if(parcoursDots[i]==='ko')cls+=' ko';
+        else if(i===parcoursQ)cls+=' current-dot';
+        d.className=cls;el.appendChild(d);
+    }
+}
+
+function parcoursNextQuestion(){
+    parcoursAnswered=false;
+    const pool=database.filter(p=>p.clubs.length>=2);
+    parcoursCurrentPlayer=pool[Math.floor(Math.random()*pool.length)];
+    const others=database.filter(p=>p.name!==parcoursCurrentPlayer.name);
+    const distract=shuffle(others).slice(0,3);
+    const allChoices=shuffle([parcoursCurrentPlayer,...distract]);
+    parcoursChoices=allChoices;
+    document.getElementById('parcours-qnum').textContent=`Question ${parcoursQ+1} / ${PARCOURS_TOTAL}`;
+    document.getElementById('parcours-score').textContent=parcoursScore;
+    document.getElementById('parcours-next-btn').classList.add('hidden');
+    document.getElementById('parcours-next-btn').textContent='Question suivante ▶';
+    document.getElementById('parcours-next-btn').onclick=parcoursNext;
+    const clubs=[...new Set(parcoursCurrentPlayer.clubs)].slice(0,5);
+    const clubsEl=document.getElementById('parcours-clubs-display');clubsEl.innerHTML='';
+    clubs.forEach((c,i)=>{
+        const item=document.createElement('div');item.className='parcours-club-item';
+        const logo=document.createElement('div');logo.className='parcours-club-logo';
+        logo.innerHTML=`<img src="${clubsDB[c]||''}" title="${c}">`;
+        const name=document.createElement('div');name.className='parcours-club-name';name.textContent=c;
+        item.appendChild(logo);item.appendChild(name);clubsEl.appendChild(item);
+        if(i<clubs.length-1){const arr=document.createElement('div');arr.className='parcours-arrow';arr.textContent='→';clubsEl.appendChild(arr);}
+    });
+    const choicesEl=document.getElementById('parcours-choices');choicesEl.innerHTML='';
+    allChoices.forEach(p=>{
+        const card=document.createElement('div');card.className='choice-card';
+        card.onclick=()=>parcoursAnswer(p.name,card);
+        card.innerHTML=`<img src="${p.photo}" class="choice-photo blur" alt="">
+            <div class="choice-info">
+                <div class="choice-name" style="filter:blur(8px);transition:filter 0.05s">???</div>
+                <div class="choice-nation" style="filter:blur(5px);transition:filter 0.3s">??? • ???</div>
+            </div>
+            <div class="choice-result-icon"></div>`;
+        card.dataset.nation = p.nation;
+        card.dataset.pos = p.pos;
+        choicesEl.appendChild(card);
+    });
+    parcoursBuildDots();
+}
+
+async function parcoursAnswer(name,card){
+    if(parcoursAnswered)return;parcoursAnswered=true;
+    const correct=name===parcoursCurrentPlayer.name;
+    const allCards=document.querySelectorAll('.choice-card');
+    allCards.forEach((c,i)=>{
+        const p=parcoursChoices[i];
+        c.classList.add('disabled');
+        c.querySelector('.choice-photo').classList.remove('blur');
+        c.querySelector('.choice-name').style.filter='none';
+        c.querySelector('.choice-name').textContent=p.name;
+        // Révéler nation et poste après réponse
+        const nationEl=c.querySelector('.choice-nation');
+        nationEl.style.filter='none';
+        nationEl.textContent=`${p.nation} • ${p.pos}`;
+        if(p.name===parcoursCurrentPlayer.name){c.classList.add('correct');c.querySelector('.choice-result-icon').textContent='✅';}
+        else if(c===card&&!correct){c.classList.add('wrong');c.querySelector('.choice-result-icon').textContent='❌';}
+        else{c.classList.add('disabled');}
+    });
+    if(correct){
+        parcoursScore++;parcoursDots[parcoursQ]='ok';
+        await updateUser({coins:(currentUser.coins||0)+1,wins:(currentUser.wins||0)+1},false);
+        animCoin(1,card);showToast('✅ Bonne réponse ! +1 🪙');
+    } else {parcoursDots[parcoursQ]='ko';showToast(`❌ C'était ${parcoursCurrentPlayer.name} !`);}
+    document.getElementById('parcours-score').textContent=parcoursScore;
+    parcoursBuildDots();
+    document.getElementById('parcours-next-btn').classList.remove('hidden');
+    parcoursQ++;
+    if(parcoursQ>=PARCOURS_TOTAL){
+        document.getElementById('parcours-next-btn').textContent='Voir les résultats 🏁';
+        document.getElementById('parcours-next-btn').onclick=parcoursShowResult;
+    }
+}
+
+async function parcoursNext(){if(parcoursQ>=PARCOURS_TOTAL){parcoursShowResult();return;}parcoursNextQuestion();}
+
+async function parcoursShowResult(){
+    if(parcoursIsDaily) await markDailyModeDone('parcours');
+    document.getElementById('parcours-game-zone').style.display='none';
+    document.getElementById('parcours-result').style.display='block';
+    document.getElementById('parcours-final-score').textContent=parcoursScore;
+    const pct=Math.round(parcoursScore/PARCOURS_TOTAL*100);
+    let msg='';
+    if(pct>=90)msg='🏆 Incroyable ! Tu es un expert !';
+    else if(pct>=70)msg='🔥 Très bien joué !';
+    else if(pct>=50)msg='👍 Pas mal du tout !';
+    else if(pct>=30)msg='😅 Il reste des progrès à faire !';
+    else msg='😬 Révise tes classiques !';
+    document.getElementById('parcours-result-msg').textContent=msg;
+    const bonus=parcoursScore*2+(parcoursIsDaily?3:0);
+    await updateUser({coins:(currentUser.coins||0)+bonus},true);
+    showToast(`🏁 Partie terminée ! +${bonus} 🪙 bonus`);
+}
+
+// ==========================================
+// MODE HISTORIQUE DES CLUBS
+// ==========================================
+let histoPlayer=null,histoFound=[],histoWrong=[],histoIsDaily=false;
+
+function startHistorique(daily=false) {
+    histoIsDaily=daily;
+    showScreen('historique-screen');
+    document.getElementById('coin-hud').style.display='flex';
+    document.getElementById('streak-hud').style.display='flex';
+    document.getElementById('histo-daily-banner').innerHTML=daily?`<div class="daily-banner">🌟 Défi du Jour — ${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>`:'';
+    histoLoadPlayer();
+}
+
+function histoLoadPlayer() {
+    histoPlayer = database[Math.floor(Math.random()*database.length)];
+    histoFound = [];
+    histoWrong = [];
+    const uniqueClubs = [...new Set(histoPlayer.clubs)];
+    document.getElementById('histo-photo').src = histoPlayer.photo;
+    document.getElementById('histo-name').textContent = histoPlayer.name;
+    const cols={G:'#eb4d4b',GDA:'#eb4d4b',DEF:'#3498db',MIL:'#f1c40f',ATT:'#badc58'};
+    const flag=flagsDB[histoPlayer.nation]?`<img src="${flagsDB[histoPlayer.nation]}" style="width:20px;height:14px;border-radius:2px;margin-right:4px;vertical-align:middle;">`:'';
+    document.getElementById('histo-meta').innerHTML=`${flag}${histoPlayer.nation} • <span style="background:${cols[histoPlayer.pos]||'#333'};color:#000;padding:2px 10px;border-radius:6px;font-weight:900;">${histoPlayer.pos}</span>`;
+    document.getElementById('histo-input').value='';
+    document.getElementById('ac-histo').style.display='none';
+    document.getElementById('histo-wrong-list').innerHTML='';
+    document.getElementById('histo-result-msg').textContent='';
+    document.getElementById('histo-next-btn').classList.add('hidden');
+    document.getElementById('histo-reveal-btn').style.display='inline-block';
+    document.getElementById('histo-coins-display').textContent=currentUser?.coins||0;
+    histoRenderSlots();
+    histoUpdateScore();
+}
+
+function histoRenderSlots() {
+    const uniqueClubs = [...new Set(histoPlayer.clubs)];
+    const slotsEl = document.getElementById('histo-slots');
+    slotsEl.innerHTML='';
+    uniqueClubs.forEach((c,i)=>{
+        const slot=document.createElement('div');
+        if(histoFound.includes(c)) {
+            slot.className='club-slot found';
+            slot.innerHTML=`<img src="${clubsDB[c]||''}" title="${c}">`;
+        } else {
+            slot.className='club-slot';
+            slot.innerHTML=`<span>?</span><span class="slot-num">${i+1}</span>`;
+        }
+        slotsEl.appendChild(slot);
+    });
+}
+
+function histoUpdateScore() {
+    const uniqueClubs = [...new Set(histoPlayer.clubs)];
+    document.getElementById('histo-score-label').textContent=`Clubs trouvés : ${histoFound.length} / ${uniqueClubs.length}`;
+}
+
+function histoCheck() {
+    const val = document.getElementById('histo-input').value.trim();
+    document.getElementById('ac-histo').style.display='none';
+    if(val.length<2) return;
+    const uniqueClubs = [...new Set(histoPlayer.clubs)];
+    // Check if matches any club
+    const matched = uniqueClubs.find(c => norm(c)===norm(val) || norm(c).includes(norm(val)) || norm(val).includes(norm(c).split(' ')[0]));
+    document.getElementById('histo-input').value='';
+    if(matched) {
+        if(histoFound.includes(matched)) { showToast('⚠️ Club déjà trouvé !'); return; }
+        histoFound.push(matched);
+        histoRenderSlots();histoUpdateScore();
+        animCoin(1,document.getElementById('histo-slots'));
+        updateUser({coins:(currentUser.coins||0)+1},false);
+        document.getElementById('histo-coins-display').textContent=currentUser?.coins||0;
+        if(histoFound.length===uniqueClubs.length) {
+            histoFinish(true);
+        } else { showToast(`✅ ${matched} trouvé ! +1 🪙`); }
+    } else {
+        // Wrong
+        const normVal=norm(val);
+        if(!histoWrong.includes(normVal)){histoWrong.push(normVal);}
+        document.getElementById('histo-input').classList.add('shake');
+        setTimeout(()=>document.getElementById('histo-input').classList.remove('shake'),400);
+        showToast('❌ Ce club n\'est pas dans le parcours !');
+        const wrongEl=document.getElementById('histo-wrong-list');
+        if(!wrongEl.innerHTML.includes(val)) wrongEl.innerHTML+=`<span class="wrong-chip">${val}</span>`;
+    }
+}
+
+function histoRevealAll() {
+    const uniqueClubs = [...new Set(histoPlayer.clubs)];
+    uniqueClubs.forEach(c=>{if(!histoFound.includes(c))histoFound.push(c);});
+    histoRenderSlots();histoUpdateScore();
+    histoFinish(false);
+}
+
+async function histoFinish(perfect) {
+    document.getElementById('histo-reveal-btn').style.display='none';
+    document.getElementById('histo-next-btn').classList.remove('hidden');
+    if(histoIsDaily) await markDailyModeDone('historique');
+    if(perfect) {
+        const bonus=histoIsDaily?3:2;
+        updateUser({coins:(currentUser.coins||0)+bonus,wins:(currentUser.wins||0)+1},true);
+        document.getElementById('histo-result-msg').textContent=`🎉 Parfait ! Tous les clubs trouvés ! +${bonus} 🪙`;
+        showToast(`🏆 Tous les clubs trouvés ! +${bonus} 🪙`);
+    } else {
+        document.getElementById('histo-result-msg').textContent='Clubs révélés. Rejoue pour faire mieux !';
+    }
+    document.getElementById('histo-next-btn').textContent='← Retour au menu';
+    document.getElementById('histo-next-btn').onclick=goHome;
+}
+
+function histoNext() { goHome(); }
+
+// ==========================================
+// MODE INVERSE
+// ==========================================
+let invPlayer=null,invFound=[],invWrong=[],invIsDaily=false;
+
+function startInverse(daily=false) {
+    invIsDaily=daily;
+    showScreen('inverse-screen');
+    document.getElementById('coin-hud').style.display='flex';
+    document.getElementById('streak-hud').style.display='flex';
+    document.getElementById('inv-daily-banner').innerHTML=daily?`<div class="inverse-banner">🌟 Défi du Jour — ${new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>`:'';
+    invLoadPlayer();
+}
+
+function invLoadPlayer() {
+    invPlayer = database[Math.floor(Math.random()*database.length)];
+    invFound=[];invWrong=[];
+    const uniqueClubs=[...new Set(invPlayer.clubs)];
+    document.getElementById('inv-photo').src=invPlayer.photo;
+    document.getElementById('inv-name').textContent=invPlayer.name;
+    const cols={G:'#eb4d4b',GDA:'#eb4d4b',DEF:'#3498db',MIL:'#f1c40f',ATT:'#badc58'};
+    const flag=flagsDB[invPlayer.nation]?`<img src="${flagsDB[invPlayer.nation]}" style="width:20px;height:14px;border-radius:2px;margin-right:4px;vertical-align:middle;">`:'';
+    document.getElementById('inv-meta').innerHTML=`${flag}${invPlayer.nation} • <span style="background:${cols[invPlayer.pos]||'#333'};color:#000;padding:2px 10px;border-radius:6px;font-weight:900;font-size:0.8rem;">${invPlayer.pos}</span>`;
+    document.getElementById('inv-progress').textContent=`0 / ${uniqueClubs.length} clubs trouvés`;
+    document.getElementById('inv-found-clubs').innerHTML='';
+    document.getElementById('inv-wrong-list').innerHTML='';
+    document.getElementById('inv-result-msg').textContent='';
+    document.getElementById('inv-next-btn').classList.add('hidden');
+    document.getElementById('inv-input-zone').style.display='block';
+    document.getElementById('inv-input').value='';
+    document.getElementById('ac-inverse').style.display='none';
+    document.getElementById('inv-coins-display').textContent=currentUser?.coins||0;
+}
+
+function invCheck() {
+    const val=document.getElementById('inv-input').value.trim();
+    document.getElementById('ac-inverse').style.display='none';
+    if(val.length<2)return;
+    const uniqueClubs=[...new Set(invPlayer.clubs)];
+    const matched=uniqueClubs.find(c=>norm(c)===norm(val)||norm(c).includes(norm(val))||norm(val).includes(norm(c).split(' ')[0]));
+    document.getElementById('inv-input').value='';
+    if(matched){
+        if(invFound.includes(matched)){showToast('⚠️ Club déjà trouvé !');return;}
+        invFound.push(matched);
+        document.getElementById('inv-progress').textContent=`${invFound.length} / ${uniqueClubs.length} clubs trouvés`;
+        const foundEl=document.getElementById('inv-found-clubs');
+        const chip=document.createElement('div');chip.className='inverse-club-found';
+        chip.innerHTML=`<img src="${clubsDB[matched]||''}" title="${matched}">`;
+        foundEl.appendChild(chip);
+        animCoin(1,chip);updateUser({coins:(currentUser.coins||0)+1},false);
+        document.getElementById('inv-coins-display').textContent=currentUser?.coins||0;
+        showToast(`✅ ${matched} ! +1 🪙`);
+        if(invFound.length===uniqueClubs.length) invFinish(true);
+    } else {
+        invWrong.push(val);
+        document.getElementById('inv-input').classList.add('shake');
+        setTimeout(()=>document.getElementById('inv-input').classList.remove('shake'),400);
+        const wrongEl=document.getElementById('inv-wrong-list');
+        wrongEl.innerHTML+=`<span class="wrong-chip">❌ ${val}</span>`;
+        showToast('❌ Ce club ne fait pas partie du parcours !');
+    }
+}
+
+async function invFinish(perfect) {
+    if(invIsDaily) await markDailyModeDone('inverse');
+    document.getElementById('inv-input-zone').style.display='none';
+    document.getElementById('inv-next-btn').classList.remove('hidden');
+    if(perfect){
+        const bonus=invIsDaily?3:2;
+        updateUser({coins:(currentUser.coins||0)+bonus,wins:(currentUser.wins||0)+1},true);
+        document.getElementById('inv-result-msg').textContent=`🏆 Tous les clubs trouvés ! Bonus +${bonus} 🪙`;
+        showToast(`🏆 Parfait ! +${bonus} 🪙 bonus`);
+    } else {
+        document.getElementById('inv-result-msg').textContent='Partie terminée.';
+    }
+    document.getElementById('inv-next-btn').textContent='← Retour au menu';
+    document.getElementById('inv-next-btn').onclick=goHome;
+}
+
+function invNext(){goHome();}
+
+// ==========================================
+// RECHERCHE
+// ==========================================
+const postOrder={G:1,GDA:1,DEF:2,MIL:3,ATT:4};
+let currentSort='poste',sortDir=1;
+
+function openSearch(){document.getElementById('search-modal').style.display='block';runSearch();}
+function closeSearch(){document.getElementById('search-modal').style.display='none';}
+function toggleSort(m){if(currentSort===m)sortDir*=-1;else{currentSort=m;sortDir=1;}runSearch();}
+
+function runSearch(){
+    const q=norm(document.getElementById('searchInput').value);
+    const body=document.getElementById('results-body');body.innerHTML='';
+    database.filter(p=>norm(p.name).includes(q)||p.clubs.some(c=>norm(c).includes(q))||norm(p.nation).includes(q))
+    .sort((a,b)=>{
+        if(currentSort==='poste'){const d=(postOrder[a.pos]||5)-(postOrder[b.pos]||5);return d!==0?d*sortDir:a.name.localeCompare(b.name);}
+        return a.nation.localeCompare(b.nation)*sortDir;
+    })
+    .forEach(p=>{
+        const col=p.pos==='G'||p.pos==='GDA'?'var(--gda)':p.pos==='DEF'?'var(--def)':p.pos==='MIL'?'var(--mil)':'var(--att)';
+        const clubs=p.clubs.map(c=>`<img src="${clubsDB[c]||''}" class="mini-club" title="${c}">`).join(' → ');
+        const flag=flagsDB[p.nation]?`<img src="${flagsDB[p.nation]}" class="mini-icon">`:'' ;
+        body.innerHTML+=`<div class="tbl-row">
+            <img src="${p.photo}" style="width:58px;height:58px;border-radius:50%;object-fit:cover;">
+            <span class="row-name">${p.name}</span>
+            <div><span class="pos-badge" style="background:${col}">${p.pos}</span></div>
+            <div>${flag} ${p.nation}</div>
+            <div style="font-size:0.68rem;color:var(--text-dim)">${clubs}</div>
+        </div>`;
+    });
+}
+
+// ==========================================
+// UTILS
+// ==========================================
+function showToast(msg){
+    const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+    clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),2500);
+}
+function norm(str){return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
+function isSimilar(a,b){
+    a=norm(a);b=norm(b);if(a===b)return true;if(a.length>=4&&b.includes(a))return true;
+    let m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);
+    for(let j=0;j<=n;j++)d[0][j]=j;
+    for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+    return d[m][n]<=(b.length>8?2:1);
+}
+
+// ==========================================
+// INIT
+// ==========================================
+async function init(){
+    const user=await loadCurrentUser();
+    if(user){enterMenu();}else{showScreen('auth-screen');}
+}
+init();
+</script>
+</body>
+</html>
